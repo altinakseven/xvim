@@ -1,0 +1,72 @@
+# xvim Project Rules
+
+## Project Patterns
+
+### Code Style and Organization
+- Rust code follows the standard Rust style guide with rustfmt
+- Module structure mirrors the architectural layers defined in systemPatterns.md
+- Public APIs are thoroughly documented with rustdoc comments
+- Complex algorithms include explanatory comments about their approach
+
+### Development Workflow
+- New features start with test cases that define expected behavior
+- Implementation follows test-driven development principles
+- Performance-critical code includes benchmarks
+- All changes maintain Vim compatibility unless explicitly noted as extensions
+
+### Documentation Practices
+- Code documentation uses rustdoc format
+- User-facing documentation uses Markdown
+- API references are generated from code comments
+- Examples are provided for all public APIs
+
+## User Preferences
+
+### Communication Style
+- Technical and precise explanations preferred
+- Visual diagrams helpful for architectural discussions
+- Code examples should accompany explanations of functionality
+- Explicit tradeoffs should be highlighted in design decisions
+
+### Decision Making
+- Vim compatibility takes precedence when conflicts arise
+- Performance considerations are secondary only to correctness
+- Security boundaries must be explicitly defined and enforced
+- Rust idioms preferred over direct ports of C patterns
+
+## Implementation Paths
+
+### Core Editor Implementation
+1. Buffer data structures → Text operations → Mode handling → Command execution
+2. Each component should be testable in isolation
+3. Performance-critical paths identified early and optimized
+
+### Plugin System Development
+1. API definition → WASM runtime integration → Plugin loading → Security model
+2. Plugin API should evolve from minimal viable functionality to full feature set
+3. Compatibility layers built on top of native APIs, not vice versa
+
+## Known Challenges
+
+### Vim Compatibility
+- Vim's behavior has many edge cases and undocumented features
+- Some behaviors depend on compile-time options
+- Terminal-specific behaviors may be difficult to reproduce exactly
+
+### Plugin System
+- WASM/WASI standards are still evolving
+- Performance characteristics may differ from native plugins
+- Balancing security with capability is an ongoing challenge
+
+### Cross-Platform Support
+- Terminal capabilities vary significantly across platforms
+- Input handling differs between operating systems
+- File path handling requires careful abstraction
+
+## Project Evolution
+
+This file will be updated as the project progresses to capture:
+- Emerging code patterns and conventions
+- Refined architectural decisions
+- Lessons learned from implementation challenges
+- User feedback and preferences
