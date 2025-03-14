@@ -78,6 +78,7 @@ impl Default for Mode {
 }
 
 /// The mode manager handles mode transitions and state
+#[derive(Clone)]
 pub struct ModeManager {
     /// The current mode
     current_mode: Mode,

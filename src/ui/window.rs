@@ -87,7 +87,7 @@ impl WindowRect {
 }
 
 /// A window displaying a buffer
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Window {
     /// Window ID
     pub id: usize,
@@ -201,7 +201,7 @@ impl Window {
 }
 
 /// Window manager
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WindowManager {
     /// Windows
     windows: Vec<Window>,

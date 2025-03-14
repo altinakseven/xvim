@@ -17,12 +17,13 @@ use crate::config::ConfigManager;
 use crate::cursor::{CursorManager, Direction};
 use crate::keymap::{KeyHandler, KeyMapping, KeySequence, Command as KeyCommand};
 use crate::mode::ModeManager;
+use crate::plugin::PluginManager;
 use crate::register::{RegisterManager, RegisterType, RegisterContent};
 use crate::selection::{SelectionManager, SelectionType};
 use crate::syntax::{SyntaxRegistry, Theme, create_default_registry, create_default_theme};
 use crate::ui::{TerminalUi, UiError};
 use crossterm::event::KeyEvent;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 // Forward declarations for text objects
 pub struct TextObject {
@@ -99,7 +100,6 @@ impl From<crate::buffer::BufferError> for EditorError {
 
 /// Result type used throughout the editor
 pub type EditorResult<T> = Result<T, EditorError>;
-
 /// The main editor struct that coordinates all components
 pub struct Editor {
     /// Buffer manager
@@ -132,6 +132,8 @@ pub struct Editor {
     macro_player: MacroPlayer,
     /// Operator manager
     operator_manager: OperatorManager,
+    /// Plugin manager
+    plugin_manager: PluginManager,
     /// Current view position (top line)
     view_position: usize,
     /// Whether the editor is running
@@ -202,6 +204,14 @@ impl Editor {
         // Initialize operator manager
         let operator_manager = OperatorManager::new();
         
+        // Initialize plugin manager
+        let mut plugin_manager = PluginManager::new();
+        
+        // Initialize the plugin system
+        if let Err(err) = plugin_manager.init() {
+            eprintln!("Warning: Failed to initialize plugin system: {}", err);
+        }
+        
         // Create an empty buffer if none exists
         let mut editor = Self {
             buffer_manager,
@@ -219,6 +229,7 @@ impl Editor {
             macro_recorder,
             macro_player,
             operator_manager,
+            plugin_manager,
             view_position: 0,
             running: false,
             command_buffer: String::new(),
@@ -235,6 +246,9 @@ impl Editor {
         
         // Apply configuration settings
         editor.apply_config();
+        
+        // Load the noxvim plugin
+        editor.load_noxvim_plugin();
         
         Ok(editor)
     }
@@ -1966,6 +1980,34 @@ impl Editor {
     /// Save the configuration
     pub fn save_config(&self) -> Result<(), crate::config::ConfigError> {
         self.config_manager.save()
+    }
+    
+    /// Load the noxvim plugin
+    fn load_noxvim_plugin(&mut self) {
+        // Set the terminal UI reference for the plugin manager
+        self.plugin_manager.set_terminal_ui(Arc::new(Mutex::new(self.terminal.clone())));
+        
+        // Set the plugin context references
+        if let Ok(mut context) = self.plugin_manager.context().lock() {
+            context.set_buffer_manager(Arc::new(Mutex::new(self.buffer_manager.clone())));
+            context.set_mode_manager(Arc::new(Mutex::new(self.mode_manager.clone())));
+            // We don't set the command registry since it's not cloneable
+        }
+        
+        // Load the noxvim plugin
+        let plugin_path = std::path::Path::new("plugins/noxvim.wasm");
+        if plugin_path.exists() {
+            match self.plugin_manager.load_plugin(plugin_path, "noxvim") {
+                Ok(_) => {
+                    println!("Loaded noxvim plugin");
+                }
+                Err(err) => {
+                    eprintln!("Failed to load noxvim plugin: {}", err);
+                }
+            }
+        } else {
+            eprintln!("noxvim plugin not found at {}", plugin_path.display());
+        }
     }
     
     /// Get the content of a register

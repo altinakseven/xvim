@@ -128,7 +128,7 @@ impl ChangeGroup {
 }
 
 /// Change history for a buffer
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChangeHistory {
     /// Undo stack (changes that can be undone)
     undo_stack: Vec<ChangeGroup>,

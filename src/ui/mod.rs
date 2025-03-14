@@ -61,6 +61,7 @@ impl From<io::Error> for UiError {
 pub type UiResult<T> = Result<T, UiError>;
 
 /// Terminal UI manager
+#[derive(Clone)]
 pub struct TerminalUi {
     /// Terminal size
     size: (u16, u16),

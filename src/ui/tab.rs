@@ -10,7 +10,7 @@ use crate::ui::window::{WindowManager, Window};
 pub type TabId = usize;
 
 /// Tab structure
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tab {
     /// Tab ID
     pub id: TabId,
@@ -64,7 +64,7 @@ impl Tab {
 }
 
 /// Tab manager
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TabManager {
     /// Tabs
     tabs: HashMap<TabId, Tab>,

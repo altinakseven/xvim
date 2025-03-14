@@ -1,0 +1,27 @@
+[package]
+name = "noxvim"
+version = "0.1.0"
+edition = "2021"
+description = "AI Agent Plugin for xvim"
+authors = ["xvim Team"]
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+anyhow = "1.0"
+thiserror = "1.0"
+async-trait = "0.1"
+futures = "0.3"
+
+[profile.release]
+# Optimize for size
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"

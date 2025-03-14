@@ -164,7 +164,7 @@ impl Default for BufferType {
 }
 
 /// A buffer represents a text document being edited
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Buffer {
     /// Unique identifier for the buffer
     id: usize,

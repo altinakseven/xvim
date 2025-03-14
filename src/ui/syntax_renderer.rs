@@ -12,6 +12,7 @@ use crate::buffer::{Buffer, BufferSyntaxExt};
 use crate::syntax::{Token, TokenType, Style};
 
 /// Renders syntax-highlighted text to the terminal
+#[derive(Clone)]
 pub struct SyntaxRenderer;
 
 impl SyntaxRenderer {

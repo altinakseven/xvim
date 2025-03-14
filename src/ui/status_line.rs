@@ -14,6 +14,7 @@ use crate::buffer::{Buffer, BufferType};
 use crate::mode::Mode;
 
 /// Status line renderer
+#[derive(Clone)]
 pub struct StatusLine;
 
 impl StatusLine {

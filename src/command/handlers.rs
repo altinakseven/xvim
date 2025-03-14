@@ -19,86 +19,94 @@ pub fn set_editor(editor: &mut Editor) {
 // We'll use a simpler approach for now - just store a flag to indicate whether to quit
 // In a more complete implementation, we would use a proper command context
 
+/// Helper function to create a handler
+fn make_handler<F>(f: F) -> Box<dyn Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync>
+where
+    F: Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync + Copy + 'static,
+{
+    Box::new(move |cmd| f(cmd))
+}
+
 /// Register all ex command handlers
 pub fn register_handlers(registry: &mut ExCommandRegistry) {
     // File operations
-    registry.register("write", handle_write);
-    registry.register("w", handle_write);
-    registry.register("quit", handle_quit);
-    registry.register("q", handle_quit);
-    registry.register("wquit", handle_write_quit);
-    registry.register("wq", handle_write_quit);
-    registry.register("xit", handle_write_quit);
-    registry.register("x", handle_write_quit);
-    registry.register("edit", handle_edit);
-    registry.register("e", handle_edit);
-    registry.register("read", handle_read);
-    registry.register("r", handle_read);
+    registry.register("write", make_handler(handle_write));
+    registry.register("w", make_handler(handle_write));
+    registry.register("quit", make_handler(handle_quit));
+    registry.register("q", make_handler(handle_quit));
+    registry.register("wquit", make_handler(handle_write_quit));
+    registry.register("wq", make_handler(handle_write_quit));
+    registry.register("xit", make_handler(handle_write_quit));
+    registry.register("x", make_handler(handle_write_quit));
+    registry.register("edit", make_handler(handle_edit));
+    registry.register("e", make_handler(handle_edit));
+    registry.register("read", make_handler(handle_read));
+    registry.register("r", make_handler(handle_read));
     
     // Window operations
-    registry.register("split", handle_split);
-    registry.register("sp", handle_split);
-    registry.register("vsplit", handle_vsplit);
-    registry.register("vs", handle_vsplit);
-    registry.register("close", handle_close);
-    registry.register("clo", handle_close);
-    registry.register("only", handle_only);
-    registry.register("on", handle_only);
-    registry.register("wnext", handle_wnext);
-    registry.register("wn", handle_wnext);
-    registry.register("wprevious", handle_wprev);
-    registry.register("wp", handle_wprev);
+    registry.register("split", make_handler(handle_split));
+    registry.register("sp", make_handler(handle_split));
+    registry.register("vsplit", make_handler(handle_vsplit));
+    registry.register("vs", make_handler(handle_vsplit));
+    registry.register("close", make_handler(handle_close));
+    registry.register("clo", make_handler(handle_close));
+    registry.register("only", make_handler(handle_only));
+    registry.register("on", make_handler(handle_only));
+    registry.register("wnext", make_handler(handle_wnext));
+    registry.register("wn", make_handler(handle_wnext));
+    registry.register("wprevious", make_handler(handle_wprev));
+    registry.register("wp", make_handler(handle_wprev));
     
     // Tab operations
-    registry.register("tabedit", handle_tabedit);
-    registry.register("tabe", handle_tabedit);
-    registry.register("tabnew", handle_tabedit);
-    registry.register("tabclose", handle_tabclose);
-    registry.register("tabc", handle_tabclose);
-    registry.register("tabnext", handle_tabnext);
-    registry.register("tabn", handle_tabnext);
-    registry.register("tabprevious", handle_tabprev);
-    registry.register("tabp", handle_tabprev);
+    registry.register("tabedit", make_handler(handle_tabedit));
+    registry.register("tabe", make_handler(handle_tabedit));
+    registry.register("tabnew", make_handler(handle_tabedit));
+    registry.register("tabclose", make_handler(handle_tabclose));
+    registry.register("tabc", make_handler(handle_tabclose));
+    registry.register("tabnext", make_handler(handle_tabnext));
+    registry.register("tabn", make_handler(handle_tabnext));
+    registry.register("tabprevious", make_handler(handle_tabprev));
+    registry.register("tabp", make_handler(handle_tabprev));
     
     // Editing operations
-    registry.register("delete", handle_delete);
-    registry.register("d", handle_delete);
-    registry.register("yank", handle_yank);
-    registry.register("y", handle_yank);
-    registry.register("put", handle_put);
-    registry.register("p", handle_put);
-    registry.register("copy", handle_copy);
-    registry.register("co", handle_copy);
-    registry.register("t", handle_copy);
-    registry.register("move", handle_move);
-    registry.register("m", handle_move);
-    registry.register("substitute", handle_substitute);
-    registry.register("s", handle_substitute);
-    registry.register("global", handle_global);
-    registry.register("g", handle_global);
-    registry.register("vglobal", handle_vglobal);
-    registry.register("v", handle_vglobal);
+    registry.register("delete", make_handler(handle_delete));
+    registry.register("d", make_handler(handle_delete));
+    registry.register("yank", make_handler(handle_yank));
+    registry.register("y", make_handler(handle_yank));
+    registry.register("put", make_handler(handle_put));
+    registry.register("p", make_handler(handle_put));
+    registry.register("copy", make_handler(handle_copy));
+    registry.register("co", make_handler(handle_copy));
+    registry.register("t", make_handler(handle_copy));
+    registry.register("move", make_handler(handle_move));
+    registry.register("m", make_handler(handle_move));
+    registry.register("substitute", make_handler(handle_substitute));
+    registry.register("s", make_handler(handle_substitute));
+    registry.register("global", make_handler(handle_global));
+    registry.register("g", make_handler(handle_global));
+    registry.register("vglobal", make_handler(handle_vglobal));
+    registry.register("v", make_handler(handle_vglobal));
     
     // Other operations
-    registry.register("undo", handle_undo);
-    registry.register("u", handle_undo);
-    registry.register("redo", handle_redo);
-    registry.register("red", handle_redo);
-    registry.register("set", handle_set);
-    registry.register("se", handle_set);
-    registry.register("map", handle_map);
-    registry.register("unmap", handle_unmap);
-    registry.register("marks", handle_marks);
-    registry.register("jumps", handle_jumps);
-    registry.register("registers", handle_registers);
-    registry.register("reg", handle_registers);
-    registry.register("buffers", handle_buffers);
-    registry.register("ls", handle_buffers);
-    registry.register("files", handle_buffers);
-    registry.register("windows", handle_windows);
-    registry.register("tabs", handle_tabs);
-    registry.register("help", handle_help);
-    registry.register("h", handle_help);
+    registry.register("undo", make_handler(handle_undo));
+    registry.register("u", make_handler(handle_undo));
+    registry.register("redo", make_handler(handle_redo));
+    registry.register("red", make_handler(handle_redo));
+    registry.register("set", make_handler(handle_set));
+    registry.register("se", make_handler(handle_set));
+    registry.register("map", make_handler(handle_map));
+    registry.register("unmap", make_handler(handle_unmap));
+    registry.register("marks", make_handler(handle_marks));
+    registry.register("jumps", make_handler(handle_jumps));
+    registry.register("registers", make_handler(handle_registers));
+    registry.register("reg", make_handler(handle_registers));
+    registry.register("buffers", make_handler(handle_buffers));
+    registry.register("ls", make_handler(handle_buffers));
+    registry.register("files", make_handler(handle_buffers));
+    registry.register("windows", make_handler(handle_windows));
+    registry.register("tabs", make_handler(handle_tabs));
+    registry.register("help", make_handler(handle_help));
+    registry.register("h", make_handler(handle_help));
 }
 
 /// Handle the :write command

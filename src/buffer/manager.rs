@@ -46,6 +46,7 @@ impl From<BufferError> for BufferManagerError {
 pub type BufferManagerResult<T> = Result<T, BufferManagerError>;
 
 /// Manages multiple buffers and provides access to them
+#[derive(Clone)]
 pub struct BufferManager {
     /// Map of buffer IDs to buffers
     buffers: HashMap<usize, Buffer>,
