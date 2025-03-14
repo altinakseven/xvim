@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "log_level": "Debug",
+  "log_file": "plugins/logs/my_plugin.log",
+  "enable_tracing": true,
+  "enable_snapshots": true,
+  "max_log_size": 10485760,
+  "max_log_files": 5
+}

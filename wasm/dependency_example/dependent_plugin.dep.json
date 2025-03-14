@@ -1,0 +1,11 @@
+{
+  "name": "dependent_plugin",
+  "version": "0.5.0",
+  "dependencies": [
+    {
+      "name": "base_plugin",
+      "version_req": "1.0.0",
+      "optional": false
+    }
+  ]
+}

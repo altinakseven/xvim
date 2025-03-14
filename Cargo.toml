@@ -1,0 +1,52 @@
+[package]
+name = "xvim"
+version = "0.1.0"
+edition = "2021"
+description = "A ground-up rewrite of the Vim text editor in pure Rust with a WASM plugin system"
+authors = ["xvim Team"]
+license = "MIT"
+
+[dependencies]
+# Core dependencies
+ropey = "1.5.0"           # Rope data structure for efficient text editing
+unicode-segmentation = "1.10.0"  # Unicode-aware text manipulation
+regex = "1.7.0"           # Pattern matching and search
+
+# Terminal UI
+crossterm = "0.25.0"      # Cross-platform terminal manipulation
+tui = { package = "ratatui", version = "0.20.1" }  # Terminal user interface widgets
+
+# Dependencies
+anyhow = "1.0.69"        # Error handling
+serde = { version = "1.0", features = ["derive"] }  # Serialization/deserialization
+serde_json = "1.0"       # JSON support
+chrono = "0.4"           # Date and time
+uuid = { version = "1.0", features = ["v4"] }  # UUID generation
+url = "2.3.1"            # URL parsing and manipulation
+
+# WASM Runtime (commented out for initial development)
+# wasmtime = "0.30.0"      # WebAssembly runtime
+# wasi-common = "0.30.0"   # WASI implementation
+# wit-bindgen = "0.4.0"    # Interface Types binding generator
+
+# Utility Libraries
+toml = "0.7.2"            # TOML parsing and serialization
+dirs = "5.0.1"            # Finding standard directories
+log = "0.4.17"            # Logging infrastructure
+clap = { version = "4.1.4", features = ["derive"] }  # Command-line argument parsing
+
+[dev-dependencies]
+proptest = "1.0.0"        # Property-based testing
+criterion = "0.4.0"       # Benchmarking
+mockall = "0.11.3"        # Mocking for unit tests
+tempfile = "3.3.0"        # Temporary file creation for tests
+
+[features]
+default = []
+development = []
+integration-tests = []
+
+# Benchmarks will be added later
+# [[bench]]
+# name = "buffer_benchmarks"
+# harness = false

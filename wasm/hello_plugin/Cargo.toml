@@ -1,0 +1,20 @@
+[package]
+name = "hello_plugin"
+version = "0.1.0"
+edition = "2021"
+description = "Hello World Plugin for xvim"
+authors = ["xvim Team"]
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# No external dependencies for this simple example
+
+[profile.release]
+# Optimize for size
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"

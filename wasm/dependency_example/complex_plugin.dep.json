@@ -1,0 +1,21 @@
+{
+  "name": "complex_plugin",
+  "version": "1.2.0",
+  "dependencies": [
+    {
+      "name": "base_plugin",
+      "version_req": "1.0.0",
+      "optional": false
+    },
+    {
+      "name": "dependent_plugin",
+      "version_req": "0.5.0",
+      "optional": false
+    },
+    {
+      "name": "optional_plugin",
+      "version_req": "0.3.0",
+      "optional": true
+    }
+  ]
+}

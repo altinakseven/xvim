@@ -16,6 +16,7 @@ xvim follows a modular architecture with clear separation of concerns, organized
    - Command interpreter
    - Text manipulation operations
    - Motion and text object implementation
+   - Selection and visual mode system
 
 3. **UI Layer**: Interface components
    - Terminal UI rendering
@@ -117,6 +118,8 @@ Each major component is designed with clear boundaries and interfaces to ensure:
   - Dispatches commands to buffer system
   - Updates UI based on mode changes
   - Provides context for command execution
+  - Coordinates with selection system in visual modes
+  - Manages transitions between normal, insert, and visual modes
 
 ### WASM Plugin Runtime
 - **Responsibility**: Loads and executes WASM plugins
@@ -145,10 +148,41 @@ Each major component is designed with clear boundaries and interfaces to ensure:
   - Notifies components of setting changes
   - Validates and normalizes user input
 
+### Text Editing Components
+
+#### Buffer Management
+- **BufferManager**: Central coordinator for all buffers
+- **Buffer**: Represents a single text document
+  - Uses Rope data structure for efficient text manipulation
+  - Tracks file path, modification status, and other metadata
+- **ChangeHistory**: Tracks changes for undo/redo functionality
+  - Uses Command pattern for change operations
+  - Groups related changes for atomic undo/redo
+
+#### Cursor Management
+- **CursorManager**: Handles cursor positioning and movement
+- **CursorPosition**: Represents a position in the buffer
+- Supports various movement operations (character, word, line)
+- Maintains preferred column for vertical movement
+
+#### Selection System
+- **Selection**: Represents a text selection with start and end positions
+- **SelectionType**: Defines selection modes (Character, Line, Block)
+- **SelectionManager**: Coordinates selection operations
+- Integrated with visual mode and cursor movement
+- Supports operations on selected text (yank, delete, change)
+- Handles normalization of selection boundaries
+
+#### Mark System
+- **Mark**: Named position in a buffer
+- **MarkMap**: Collection of marks for a buffer
+- Supports global and buffer-local marks
+- Integrated with jump list for navigation
+
 ## Data Flow Patterns
 
 1. **Input Processing Flow**
-   - Key input → Mode interpreter → Command generation → Buffer modification → UI update
+   - Key input → Mode interpreter → Command generation → Buffer modification → Selection update → UI update
 
 2. **Plugin Execution Flow**
    - Editor event → Event dispatch → Plugin notification → Plugin execution → API calls → Editor state change
@@ -159,7 +193,10 @@ Each major component is designed with clear boundaries and interfaces to ensure:
 4. **Buffer Modification Flow**
    - Command execution → Change recording → Buffer modification → Change notification → UI update → Plugin notification
 
-5. **AI Plugin Interaction Flow**
+5. **Visual Mode Selection Flow**
+   - Mode activation → Selection start → Cursor movement → Selection update → Operation execution → Mode exit
+
+6. **AI Plugin Interaction Flow**
    - User input → Context gathering → API request formation → Asynchronous service call → Progress updates → Response processing → UI rendering
 
 ## Advanced Plugin Architectures
@@ -183,8 +220,9 @@ PyroVim represents an advanced use case for the WASM plugin system, requiring so
 3. **Context Awareness**
    - Project structure analysis
    - Buffer content access
-   - Cursor and selection tracking
-   - Integration with editor state
+   - Cursor position tracking
+   - Visual mode selection tracking
+   - Integration with editor state and mode
 
 4. **Component Structure**
    - Core plugin module for initialization and lifecycle
