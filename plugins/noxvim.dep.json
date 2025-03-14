@@ -1,7 +1,0 @@
-{
-  "name": "noxvim",
-  "version": "0.1.0",
-  "description": "A plugin that provides Neovim-like features for xvim",
-  "author": "xvim team",
-  "dependencies": []
-}
