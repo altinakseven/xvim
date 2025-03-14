@@ -9,7 +9,7 @@ pub use ex::{
     ExCommand, ExCommandError, ExCommandParser, ExCommandRegistry,
     ExCommandResult, Range, RangeSpec, CommandFlags
 };
-pub use handlers::{register_handlers, should_quit, reset_quit_flag};
+pub use handlers::{register_handlers, should_quit, reset_quit_flag, set_editor};
 
 /// Command types
 #[derive(Debug, Clone, PartialEq)]

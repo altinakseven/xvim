@@ -398,6 +398,63 @@ impl Editor {
         self.buffer_manager.current_buffer_id()
     }
     
+    /// Save the current buffer
+    pub fn save_current_buffer(&mut self) -> EditorResult<()> {
+        // Get the current buffer ID
+        let buffer_id = match self.current_buffer_id() {
+            Some(id) => id,
+            None => return Err(EditorError::Other("No buffer to save".to_string())),
+        };
+        
+        // Get the buffer from the buffer manager
+        let buffer = match self.buffer_manager.get_buffer_mut(buffer_id) {
+            Ok(buffer) => buffer,
+            Err(err) => return Err(EditorError::Buffer(err)),
+        };
+        
+        // Check if the buffer has a file path
+        if buffer.file_path().is_none() {
+            return Err(EditorError::Other("No file name".to_string()));
+        }
+        
+        // Save the buffer
+        match buffer.save() {
+            Ok(_) => {
+                if let Some(path) = buffer.file_path() {
+                    println!("\"{}\" written", path.display());
+                } else {
+                    println!("Buffer written");
+                }
+                Ok(())
+            },
+            Err(err) => Err(EditorError::Buffer(err.into())),
+        }
+    }
+    
+    /// Save the current buffer to a specific file
+    pub fn save_current_buffer_as<P: AsRef<Path>>(&mut self, path: P) -> EditorResult<()> {
+        // Get the current buffer ID
+        let buffer_id = match self.current_buffer_id() {
+            Some(id) => id,
+            None => return Err(EditorError::Other("No buffer to save".to_string())),
+        };
+        
+        // Get the buffer from the buffer manager
+        let buffer = match self.buffer_manager.get_buffer_mut(buffer_id) {
+            Ok(buffer) => buffer,
+            Err(err) => return Err(EditorError::Buffer(err)),
+        };
+        
+        // Save the buffer to the specified file
+        match buffer.save_as(path.as_ref()) {
+            Ok(_) => {
+                println!("\"{}\" written", path.as_ref().display());
+                Ok(())
+            },
+            Err(err) => Err(EditorError::Buffer(err.into())),
+        }
+    }
+    
     /// Render the current state
     fn render(&mut self) -> EditorResult<()> {
         // Get all buffers
@@ -1394,6 +1451,9 @@ impl Editor {
         
         // Reset the quit flag
         crate::command::reset_quit_flag();
+        
+        // Set the global editor reference for command handlers
+        crate::command::set_editor(self);
         
         // Main event loop
         while self.running {
