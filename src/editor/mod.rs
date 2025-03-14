@@ -8,6 +8,7 @@ use std::path::Path;
 
 // Import all modules from crate
 use crate::buffer::{BufferManager, BufferManagerError, BufferResult};
+use crate::cursor::CursorPosition;
 use crate::command::{Command, CommandParser, ExCommandRegistry, register_handlers};
 use crate::r#macro::{MacroRecorder, MacroPlayer, MacroRecorderState};
 use crate::text_object::TextObjectType as TextObjectTypeExt;
@@ -371,6 +372,11 @@ impl Editor {
     pub fn current_mode(&self) -> crate::mode::Mode {
         self.mode_manager.current_mode()
     }
+    
+    /// Get the current cursor position
+    pub fn cursor_position(&self) -> crate::cursor::CursorPosition {
+        self.cursor_manager.position()
+    }
 
     /// Open a file in the editor
     pub fn open_file<P: AsRef<Path>>(&mut self, path: P) -> EditorResult<()> {
@@ -449,6 +455,63 @@ impl Editor {
         match buffer.save_as(path.as_ref()) {
             Ok(_) => {
                 println!("\"{}\" written", path.as_ref().display());
+                Ok(())
+            },
+            Err(err) => Err(EditorError::Buffer(err.into())),
+        }
+    }
+    
+    /// Delete lines from a buffer starting at the cursor position
+    pub fn delete_lines_from_cursor(&mut self, buffer_id: usize, start_line: usize, end_line: usize) -> EditorResult<()> {
+        // Get the buffer from the buffer manager
+        let buffer = match self.buffer_manager.get_buffer(buffer_id) {
+            Ok(buffer) => buffer,
+            Err(err) => return Err(EditorError::Buffer(err)),
+        };
+        
+        // Get the start and end positions
+        let start_idx = match buffer.position_to_char_idx(start_line, 0) {
+            Ok(idx) => idx,
+            Err(err) => return Err(EditorError::Buffer(err.into())),
+        };
+        
+        let end_idx = if end_line + 1 < buffer.line_count() {
+            match buffer.position_to_char_idx(end_line + 1, 0) {
+                Ok(idx) => idx,
+                Err(err) => return Err(EditorError::Buffer(err.into())),
+            }
+        } else {
+            buffer.content().len()
+        };
+        
+        // Get the text from the buffer before deleting it
+        let content = buffer.content();
+        if start_idx < content.len() && end_idx <= content.len() {
+            let text = content[start_idx..end_idx].to_string();
+            
+            // Store the text in the unnamed register
+            let lines: Vec<&str> = text.lines().collect();
+            let register_content = RegisterContent::line_wise(&lines);
+            self.register_manager.set_register(RegisterType::Unnamed, register_content);
+        }
+        
+        // Get a mutable reference to the buffer and delete the lines
+        let buffer = match self.buffer_manager.get_buffer_mut(buffer_id) {
+            Ok(buffer) => buffer,
+            Err(err) => return Err(EditorError::Buffer(err)),
+        };
+        
+        match buffer.delete(start_idx, end_idx) {
+            Ok(_) => {
+                // Move cursor to the start of the next line or the start of the file if we deleted the last line
+                let new_pos = if start_line < buffer.line_count() {
+                    CursorPosition::new(start_line, 0)
+                } else if buffer.line_count() > 0 {
+                    CursorPosition::new(buffer.line_count() - 1, 0)
+                } else {
+                    CursorPosition::new(0, 0)
+                };
+                self.cursor_manager.set_position(new_pos);
                 Ok(())
             },
             Err(err) => Err(EditorError::Buffer(err.into())),

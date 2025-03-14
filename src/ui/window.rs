@@ -223,7 +223,8 @@ impl WindowManager {
 
     /// Create the initial window
     pub fn create_initial_window(&mut self, buffer_id: usize, width: u16, height: u16) -> usize {
-        let rect = WindowRect::new(0, 0, width, height);
+        // Start at y=1 to leave room for the tab bar at y=0
+        let rect = WindowRect::new(0, 1, width, height - 1);
         let window = Window::new(self.next_window_id, buffer_id, rect);
         self.next_window_id += 1;
         let id = window.id;
@@ -371,7 +372,8 @@ impl WindowManager {
 
         // For now, just resize the first window to fill the screen
         // In a more advanced implementation, we would maintain the window layout
-        self.windows[0].rect = WindowRect::new(0, 0, width, height);
+        // Start at y=1 to leave room for the tab bar at y=0
+        self.windows[0].rect = WindowRect::new(0, 1, width, height - 1);
 
         // Ensure cursor visibility for all windows
         for (i, window) in self.windows.iter_mut().enumerate() {

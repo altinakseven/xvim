@@ -261,10 +261,47 @@ fn handle_tabprev(_cmd: &ExCommand) -> ExCommandResult<()> {
 }
 
 /// Handle the :delete command
-fn handle_delete(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement delete command
-    // This would delete lines from the buffer
-    Ok(())
+fn handle_delete(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Get the current buffer ID
+    let buffer_id = match editor.current_buffer_id() {
+        Some(id) => id,
+        None => return Err(ExCommandError::InvalidCommand("No buffer to delete from".to_string())),
+    };
+    
+    // Get the current cursor position
+    let cursor_pos = editor.cursor_position();
+    let start_line = cursor_pos.line;
+    
+    // Parse the count from the command arguments
+    let count = if let Some(count_str) = cmd.first_arg() {
+        match count_str.parse::<usize>() {
+            Ok(n) => n,
+            Err(_) => return Err(ExCommandError::InvalidCommand(format!("Invalid count: {}", count_str))),
+        }
+    } else {
+        // Default to 1 line if no count is provided
+        1
+    };
+    
+    // Calculate the end line (inclusive)
+    let end_line = start_line + count - 1;
+    
+    // Delete the lines
+    match editor.delete_lines_from_cursor(buffer_id, start_line, end_line) {
+        Ok(_) => {
+            println!("{} line{} deleted", count, if count == 1 { "" } else { "s" });
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to delete lines: {}", err))),
+    }
 }
 
 /// Handle the :yank command

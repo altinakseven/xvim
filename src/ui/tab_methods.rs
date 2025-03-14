@@ -380,11 +380,40 @@ impl TerminalUi {
         // Render the status line
         self.render_window_status_line(window, buffer, mode)?;
         
-        // Position the cursor at the cursor position
+        // Highlight the cursor position
         let cursor_x = content_area.x + 5 + (window.cursor.column - window.left_col) as u16;
         let cursor_y = content_area.y + (window.cursor.line - window.top_line) as u16;
         
         if cursor_x < content_area.x + content_area.width && cursor_y < content_area.y + content_area.height {
+            // Move to the cursor position
+            execute!(stdout, cursor::MoveTo(cursor_x, cursor_y))?;
+            
+            // Get the character at the cursor position
+            let cursor_char = if window.cursor.line < buffer.line_count() {
+                let line = buffer.line(window.cursor.line).unwrap_or_default();
+                if window.cursor.column < line.len() {
+                    line.chars().nth(window.cursor.column).unwrap_or(' ')
+                } else {
+                    ' ' // Cursor is at the end of the line or beyond
+                }
+            } else {
+                ' ' // Cursor is beyond the end of the buffer
+            };
+            
+            // Highlight the cursor by inverting the colors
+            execute!(
+                stdout,
+                style::SetBackgroundColor(Color::White),
+                style::SetForegroundColor(Color::Black)
+            )?;
+            
+            // Write the character at the cursor position
+            write!(stdout, "{}", cursor_char)?;
+            
+            // Reset the colors
+            execute!(stdout, style::ResetColor)?;
+            
+            // Move back to the cursor position
             execute!(stdout, cursor::MoveTo(cursor_x, cursor_y))?;
         }
         
