@@ -1,0 +1,17 @@
+[package]
+name = "xvim_plugin_api"
+version = "0.1.0"
+edition = "2021"
+description = "API for xvim plugins"
+authors = ["xvim Team"]
+license = "MIT"
+
+[dependencies]
+# Core dependencies
+anyhow = "1.0.69"        # Error handling
+serde = { version = "1.0", features = ["derive"] }  # Serialization/deserialization
+serde_json = "1.0"       # JSON support
+log = "0.4.17"           # Logging infrastructure
+
+[lib]
+crate-type = ["rlib", "cdylib"]

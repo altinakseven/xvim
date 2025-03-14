@@ -10,7 +10,8 @@ license = "MIT"
 crate-type = ["cdylib"]
 
 [dependencies]
-# No external dependencies for this simple example
+# Use the xvim_plugin_api crate
+xvim_plugin_api = { path = "../xvim_plugin_api" }
 
 [profile.release]
 # Optimize for size

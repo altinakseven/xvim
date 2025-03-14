@@ -174,7 +174,7 @@ impl Editor {
         let mut ex_command_registry = ExCommandRegistry::new();
         
         // Register command handlers
-        register_handlers(&mut ex_command_registry);
+        register_handlers(&mut ex_command_registry, None);
         
         // Initialize syntax registry
         let syntax_registry = match create_default_registry() {
@@ -2000,6 +2000,9 @@ impl Editor {
             match self.plugin_manager.load_plugin(plugin_path, "noxvim") {
                 Ok(_) => {
                     println!("Loaded noxvim plugin");
+                    
+                    // Register mock NoxChat command since the WASM runtime is just a placeholder
+                    self.register_noxvim_commands();
                 }
                 Err(err) => {
                     eprintln!("Failed to load noxvim plugin: {}", err);
@@ -2008,6 +2011,27 @@ impl Editor {
         } else {
             eprintln!("noxvim plugin not found at {}", plugin_path.display());
         }
+    }
+    
+    /// Register commands for the noxvim plugin
+    fn register_noxvim_commands(&mut self) {
+        // Register the plugin commands using the plugin commands module
+        let plugin_manager = Arc::new(Mutex::new(PluginManager::new()));
+        
+        // Copy the necessary configuration from the existing plugin manager
+        if let Ok(mut pm) = plugin_manager.lock() {
+            pm.set_plugin_dir(self.plugin_manager.plugin_dir());
+            
+            // Load the noxvim plugin
+            let plugin_path = std::path::Path::new("plugins/noxvim.wasm");
+            if plugin_path.exists() {
+                if let Err(err) = pm.load_plugin(plugin_path, "noxvim") {
+                    eprintln!("Failed to load noxvim plugin in command handler: {}", err);
+                }
+            }
+        }
+        
+        crate::plugin::commands::register_plugin_commands(&mut self.ex_command_registry, plugin_manager);
     }
     
     /// Get the content of a register

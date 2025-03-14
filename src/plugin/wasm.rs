@@ -64,6 +64,9 @@ impl WasmRuntime {
         // Add the plugin to the map
         self.plugins.insert(name.to_string(), plugin);
         
+        // Log that we loaded the plugin
+        println!("Loaded plugin '{}' from '{}'", name, path.display());
+        
         Ok(())
     }
     
@@ -77,6 +80,9 @@ impl WasmRuntime {
         // Remove the plugin from the map
         self.plugins.remove(name);
         
+        // Log that we unloaded the plugin
+        println!("Unloaded plugin '{}'", name);
+        
         Ok(())
     }
     
@@ -88,7 +94,7 @@ impl WasmRuntime {
     /// Call a function in a plugin
     pub fn call_function(&mut self, plugin_name: &str, function_name: &str, args: &[u8]) -> Result<Vec<u8>> {
         // Check if the plugin is loaded
-        let plugin = self.plugins.get(plugin_name)
+        let _plugin = self.plugins.get(plugin_name)
             .ok_or_else(|| anyhow!("Plugin '{}' is not loaded", plugin_name))?;
         
         // This is a placeholder implementation
@@ -97,6 +103,26 @@ impl WasmRuntime {
         
         // Return empty result
         Ok(Vec::new())
+    }
+    
+    /// Call a command in a plugin
+    pub fn call_command(&mut self, plugin_name: &str, command_name: &str, args: &[&str]) -> Result<bool> {
+        // Check if the plugin is loaded
+        let _plugin = self.plugins.get(plugin_name)
+            .ok_or_else(|| anyhow!("Plugin '{}' is not loaded", plugin_name))?;
+        
+        // This is a placeholder implementation
+        println!("Called command '{}' in plugin '{}' with args: {:?}",
+            command_name, plugin_name, args);
+        
+        // For the noxvim plugin, we'll simulate handling the NoxChat command
+        if plugin_name == "noxvim" && command_name == "NoxChat" {
+            println!("NoxVim plugin is handling the NoxChat command");
+            return Ok(true);
+        }
+        
+        // Return false to indicate the command was not handled
+        Ok(false)
     }
     
     /// Send an event to all plugins

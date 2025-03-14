@@ -280,7 +280,8 @@ fn send_request(request: &str, config: &NoxVimConfig) -> Result<String, String> 
     // For now, just return a mock response
     
     // Log the request
-    crate::xvim_plugin_api::log_message(&format!("Sending request to AI service: {}", request));
+    use xvim_plugin_api::log_message;
+    log_message(&format!("Sending request to AI service: {}", request));
     
     // Check if the API key is set
     if config.api_key.is_empty() {

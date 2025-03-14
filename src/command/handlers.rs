@@ -4,7 +4,8 @@
 
 use crate::command::{ExCommand, ExCommandError, ExCommandResult, ExCommandRegistry};
 use crate::editor::Editor;
-use std::sync::Arc;
+use crate::plugin::PluginManager;
+use std::sync::{Arc, Mutex};
 
 // Global reference to the editor instance
 // This is a temporary solution until we have a proper way to pass the editor to command handlers
@@ -21,15 +22,15 @@ pub fn set_editor(editor: &mut Editor) {
 // In a more complete implementation, we would use a proper command context
 
 /// Helper function to create a handler
-fn make_handler<F>(f: F) -> Arc<dyn Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync>
+fn make_handler<F>(f: F) -> impl Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync + 'static
 where
     F: Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync + Copy + 'static,
 {
-    Arc::new(move |cmd| f(cmd))
+    move |cmd| f(cmd)
 }
 
 /// Register all ex command handlers
-pub fn register_handlers(registry: &mut ExCommandRegistry) {
+pub fn register_handlers(registry: &mut ExCommandRegistry, plugin_manager: Option<Arc<Mutex<PluginManager>>>) {
     // File operations
     registry.register("write", make_handler(handle_write));
     registry.register("w", make_handler(handle_write));
@@ -108,6 +109,11 @@ pub fn register_handlers(registry: &mut ExCommandRegistry) {
     registry.register("tabs", make_handler(handle_tabs));
     registry.register("help", make_handler(handle_help));
     registry.register("h", make_handler(handle_help));
+    
+    // Register plugin commands if a plugin manager is provided
+    if let Some(plugin_manager) = plugin_manager {
+        crate::plugin::commands::register_plugin_commands(registry, plugin_manager);
+    }
 }
 
 /// Handle the :write command

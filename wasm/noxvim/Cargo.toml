@@ -18,6 +18,7 @@ anyhow = "1.0"
 thiserror = "1.0"
 async-trait = "0.1"
 futures = "0.3"
+xvim_plugin_api = { path = "../xvim_plugin_api" }
 
 [profile.release]
 # Optimize for size

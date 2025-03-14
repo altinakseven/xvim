@@ -3,7 +3,7 @@
 //! This module handles gathering context from the editor, including
 //! project structure, buffer content, cursor position, and more.
 
-use crate::xvim_plugin_api::*;
+use xvim_plugin_api::*;
 
 /// Project context
 #[derive(Debug, Clone, Default)]
@@ -69,13 +69,19 @@ pub fn get_project_context() -> Result<ProjectContext, String> {
     context.buffers = get_open_buffers()?;
     
     // Get the current buffer ID
-    context.current_buffer_id = get_current_buffer_id();
+    context.current_buffer_id = get_current_buffer_id().ok();
     
     // Get the current cursor position
-    context.cursor_position = get_cursor_position();
+    context.cursor_position = match get_cursor_position() {
+        Ok(pos) => Some((pos.line, pos.column)),
+        Err(_) => None
+    };
     
     // Get the current mode
-    context.current_mode = get_current_mode();
+    context.current_mode = match get_current_mode() {
+        Ok(mode) => Some(format!("{:?}", mode)),
+        Err(_) => None
+    };
     
     // Get the current selection
     context.selection = get_selection();
@@ -85,13 +91,31 @@ pub fn get_project_context() -> Result<ProjectContext, String> {
 
 /// Get the project structure
 fn get_project_structure() -> Result<ProjectStructure, String> {
-    // Get the project root directory
-    let root_dir = get_project_root()
-        .ok_or("Failed to get project root directory")?;
+    // In a real implementation, we would:
+    // 1. Get the project root directory
+    // 2. List all files in the project
     
-    // Get the files in the project
-    let files = list_project_files(&root_dir)
-        .map_err(|e| format!("Failed to list project files: {}", e))?;
+    // For now, just return a mock project structure
+    let root_dir = "/home/user/project".to_string();
+    
+    // Create a mock list of files
+    let files = vec![
+        FileInfo {
+            path: format!("{}/src/main.rs", root_dir),
+            file_type: "rust".to_string(),
+            size: 1024,
+        },
+        FileInfo {
+            path: format!("{}/src/lib.rs", root_dir),
+            file_type: "rust".to_string(),
+            size: 2048,
+        },
+        FileInfo {
+            path: format!("{}/Cargo.toml", root_dir),
+            file_type: "toml".to_string(),
+            size: 512,
+        },
+    ];
     
     Ok(ProjectStructure {
         root_dir,
@@ -101,42 +125,45 @@ fn get_project_structure() -> Result<ProjectStructure, String> {
 
 /// Get the open buffers
 fn get_open_buffers() -> Result<Vec<BufferContext>, String> {
-    // Get the list of buffer IDs
-    let buffer_ids = list_buffers()
-        .map_err(|e| format!("Failed to list buffers: {}", e))?;
+    // In a real implementation, we would:
+    // 1. Get the list of buffer IDs
+    // 2. Create a buffer context for each buffer
     
-    // Create a buffer context for each buffer
-    let mut buffers = Vec::new();
-    for buffer_id in buffer_ids {
-        if let Some(buffer_context) = get_buffer_context(buffer_id) {
-            buffers.push(buffer_context);
+    // For now, just return a mock list of buffers
+    let current_buffer_id = get_current_buffer_id().unwrap_or(0);
+    
+    let buffers = vec![
+        BufferContext {
+            id: current_buffer_id,
+            name: "current_buffer".to_string(),
+            content: "// This is a mock buffer content".to_string(),
+            file_path: Some("/path/to/file.rs".to_string()),
+            file_type: Some("rust".to_string()),
         }
-    }
+    ];
     
     Ok(buffers)
 }
 
 /// Get the context for a buffer
 fn get_buffer_context(buffer_id: usize) -> Option<BufferContext> {
-    // Get the buffer name
-    let name = get_buffer_name(buffer_id)?;
+    // In a real implementation, we would:
+    // 1. Get the buffer name
+    // 2. Get the buffer content
+    // 3. Get the buffer file path
+    // 4. Get the buffer file type
     
-    // Get the buffer content
-    let content = get_buffer_content(buffer_id)?;
-    
-    // Get the buffer file path
-    let file_path = get_buffer_file_path(buffer_id);
-    
-    // Get the buffer file type
-    let file_type = get_buffer_file_type(buffer_id);
-    
-    Some(BufferContext {
-        id: buffer_id,
-        name,
-        content,
-        file_path,
-        file_type,
-    })
+    // For now, just return a mock buffer context
+    match get_buffer_content(buffer_id) {
+        Ok(content) => Some(BufferContext {
+            id: buffer_id,
+            name: format!("buffer_{}", buffer_id),
+            content,
+            file_path: Some(format!("/path/to/buffer_{}.rs", buffer_id)),
+            file_type: Some("rust".to_string()),
+        }),
+        Err(_) => None
+    }
 }
 
 /// Update the context for a buffer
@@ -160,62 +187,4 @@ pub fn update_mode_context(mode: &str) {
     log_message(&format!("Updated mode context: mode={}", mode));
 }
 
-// Mock functions for the xvim plugin API
-
-/// Get the project root directory
-fn get_project_root() -> Option<String> {
-    // This would be implemented by the xvim plugin API
-    Some("/path/to/project".to_string())
-}
-
-/// List files in the project
-fn list_project_files(root_dir: &str) -> Result<Vec<FileInfo>, String> {
-    // This would be implemented by the xvim plugin API
-    Ok(vec![
-        FileInfo {
-            path: format!("{}/src/main.rs", root_dir),
-            file_type: "rust".to_string(),
-            size: 1024,
-        },
-        FileInfo {
-            path: format!("{}/src/lib.rs", root_dir),
-            file_type: "rust".to_string(),
-            size: 2048,
-        },
-        FileInfo {
-            path: format!("{}/Cargo.toml", root_dir),
-            file_type: "toml".to_string(),
-            size: 512,
-        },
-    ])
-}
-
-/// List buffer IDs
-fn list_buffers() -> Result<Vec<usize>, String> {
-    // This would be implemented by the xvim plugin API
-    Ok(vec![0, 1, 2])
-}
-
-/// Get the name of a buffer
-fn get_buffer_name(buffer_id: usize) -> Option<String> {
-    // This would be implemented by the xvim plugin API
-    Some(format!("buffer_{}", buffer_id))
-}
-
-/// Get the file path of a buffer
-fn get_buffer_file_path(buffer_id: usize) -> Option<String> {
-    // This would be implemented by the xvim plugin API
-    Some(format!("/path/to/buffer_{}.rs", buffer_id))
-}
-
-/// Get the file type of a buffer
-fn get_buffer_file_type(buffer_id: usize) -> Option<String> {
-    // This would be implemented by the xvim plugin API
-    Some("rust".to_string())
-}
-
-/// Get the current mode
-fn get_current_mode() -> Option<String> {
-    // This would be implemented by the xvim plugin API
-    Some("normal".to_string())
-}
+// These functions are now provided by the xvim_plugin_api crate

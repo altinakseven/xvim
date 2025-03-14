@@ -13,6 +13,7 @@ use crate::ui::TerminalUi;
 // Re-export submodules
 pub mod api;
 pub mod r#async;
+pub mod commands;
 pub mod debug;
 pub mod dependency;
 pub mod events;
@@ -309,6 +310,49 @@ impl PluginManager {
         }
         
         result
+    }
+    
+    /// Execute a command in a plugin
+    pub fn execute_command(&mut self, command: &str, args: &[&str]) -> Result<()> {
+        // Log the command execution
+        self.debug_manager.log(
+            "plugin_manager",
+            debug::LogLevel::Info,
+            &format!("Executing command: {}", command),
+            Some(&format!("args: {:?}", args)),
+        )?;
+        
+        // Start a trace for the command execution
+        let trace_id = self.debug_manager.start_trace(
+            "plugin_manager",
+            &format!("execute_command: {}", command),
+            None,
+        )?;
+        
+        // Find the plugin that registered this command
+        // For now, we'll just try to call the command handler in each plugin
+        // In a real implementation, we would have a registry of commands
+        let mut success = false;
+        
+        for plugin_name in self.plugins.keys() {
+            // Try to call the command handler in this plugin
+            let result = self.runtime.call_command(plugin_name, command, args);
+            
+            if let Ok(true) = result {
+                // The plugin handled the command
+                success = true;
+                break;
+            }
+        }
+        
+        // End the trace
+        self.debug_manager.end_trace(&trace_id)?;
+        
+        if success {
+            Ok(())
+        } else {
+            Err(anyhow!("Command not found: {}", command))
+        }
     }
     
     /// Send an event to all plugins

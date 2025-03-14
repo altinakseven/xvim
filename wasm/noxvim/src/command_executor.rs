@@ -3,7 +3,7 @@
 //! This module handles executing commands from the AI assistant,
 //! such as creating files, modifying code, and running shell commands.
 
-use crate::xvim_plugin_api::*;
+use xvim_plugin_api::*;
 
 /// Command type
 #[derive(Debug, Clone, PartialEq)]
@@ -215,28 +215,28 @@ fn apply_diff_to_content(content: &str, diff: &str) -> Result<String, String> {
     Ok(content.to_string())
 }
 
-// Mock functions for the xvim plugin API
+// These functions are now provided by the xvim_plugin_api crate
 
 /// Check if a file exists
 fn file_exists(path: &str) -> bool {
-    // This would be implemented by the xvim plugin API
+    // TODO: Implement using xvim_plugin_api
     true
 }
 
 /// Read a file
 fn read_file(path: &str) -> Result<String, String> {
-    // This would be implemented by the xvim plugin API
+    // TODO: Implement using xvim_plugin_api
     Ok("File content".to_string())
 }
 
 /// Write a file
 fn write_file(path: &str, content: &str) -> Result<(), String> {
-    // This would be implemented by the xvim plugin API
+    // TODO: Implement using xvim_plugin_api
     Ok(())
 }
 
 /// Execute a shell command
 fn execute_shell_command(command: &str) -> Result<String, String> {
-    // This would be implemented by the xvim plugin API
+    // TODO: Implement using xvim_plugin_api
     Ok(format!("Output of command: {}", command))
 }

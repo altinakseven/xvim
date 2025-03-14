@@ -24,10 +24,10 @@ chrono = "0.4"           # Date and time
 uuid = { version = "1.0", features = ["v4"] }  # UUID generation
 url = "2.3.1"            # URL parsing and manipulation
 
-# WASM Runtime (commented out for initial development)
-# wasmtime = "0.30.0"      # WebAssembly runtime
-# wasi-common = "0.30.0"   # WASI implementation
-# wit-bindgen = "0.4.0"    # Interface Types binding generator
+# WASM Runtime
+wasmtime = "12.0.1"      # WebAssembly runtime
+wasi-common = "12.0.1"   # WASI implementation
+wit-bindgen = "0.11.0"   # Interface Types binding generator
 
 # Utility Libraries
 toml = "0.7.2"            # TOML parsing and serialization
