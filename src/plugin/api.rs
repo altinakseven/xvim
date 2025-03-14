@@ -149,10 +149,23 @@ pub mod functions {
     }
     
     /// Register a command
-    pub fn register_command(context: &PluginContext, name: &str, handler: Box<dyn Fn(&[&str]) -> Result<(), String>>) -> bool {
+    pub fn register_command(context: &PluginContext, name: &str, handler: Box<dyn Fn(&[&str]) -> Result<(), String> + Send + Sync + 'static>) -> bool {
         if let Some(command_registry) = &context.command_registry() {
             if let Ok(mut command_registry) = command_registry.lock() {
-                // TODO: Implement command registration
+                // Create a wrapper function that converts the plugin command handler to an ExCommand handler
+                let wrapper = move |ex_cmd: &crate::command::ExCommand| -> crate::command::ExCommandResult<()> {
+                    // Convert ExCommand args to string slices
+                    let args: Vec<&str> = ex_cmd.args.iter().map(|s| s.as_str()).collect();
+                    
+                    // Call the plugin handler
+                    match handler(&args) {
+                        Ok(_) => Ok(()),
+                        Err(err) => Err(crate::command::ExCommandError::InvalidCommand(err)),
+                    }
+                };
+                
+                // Register the command with the command registry
+                command_registry.register(name, wrapper);
                 return true;
             }
         }

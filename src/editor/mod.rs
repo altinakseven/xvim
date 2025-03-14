@@ -1991,7 +1991,7 @@ impl Editor {
         if let Ok(mut context) = self.plugin_manager.context().lock() {
             context.set_buffer_manager(Arc::new(Mutex::new(self.buffer_manager.clone())));
             context.set_mode_manager(Arc::new(Mutex::new(self.mode_manager.clone())));
-            // We don't set the command registry since it's not cloneable
+            context.set_command_registry(Arc::new(Mutex::new(self.ex_command_registry.clone())));
         }
         
         // Load the noxvim plugin

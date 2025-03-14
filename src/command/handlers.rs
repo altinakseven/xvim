@@ -4,6 +4,7 @@
 
 use crate::command::{ExCommand, ExCommandError, ExCommandResult, ExCommandRegistry};
 use crate::editor::Editor;
+use std::sync::Arc;
 
 // Global reference to the editor instance
 // This is a temporary solution until we have a proper way to pass the editor to command handlers
@@ -20,11 +21,11 @@ pub fn set_editor(editor: &mut Editor) {
 // In a more complete implementation, we would use a proper command context
 
 /// Helper function to create a handler
-fn make_handler<F>(f: F) -> Box<dyn Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync>
+fn make_handler<F>(f: F) -> Arc<dyn Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync>
 where
     F: Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync + Copy + 'static,
 {
-    Box::new(move |cmd| f(cmd))
+    Arc::new(move |cmd| f(cmd))
 }
 
 /// Register all ex command handlers

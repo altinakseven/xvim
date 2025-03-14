@@ -6,6 +6,7 @@
 use std::str::FromStr;
 use std::fmt;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Error type for ex command parsing
 #[derive(Debug, Clone, PartialEq)]
@@ -450,9 +451,10 @@ impl ExCommandParser {
 }
 
 /// Ex command registry
+#[derive(Clone)]
 pub struct ExCommandRegistry {
     /// Command handlers
-    handlers: HashMap<String, Box<dyn Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync>>,
+    handlers: HashMap<String, Arc<dyn Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync>>,
 }
 
 impl ExCommandRegistry {
@@ -468,7 +470,7 @@ impl ExCommandRegistry {
     where
         F: Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync + 'static,
     {
-        self.handlers.insert(name.to_string(), Box::new(handler));
+        self.handlers.insert(name.to_string(), Arc::new(handler));
     }
     
     /// Execute a command
@@ -483,6 +485,12 @@ impl ExCommandRegistry {
     /// Check if a command is registered
     pub fn has_command(&self, name: &str) -> bool {
         self.handlers.contains_key(name)
+    }
+}
+
+impl Default for ExCommandRegistry {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
