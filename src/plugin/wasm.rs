@@ -111,13 +111,23 @@ impl WasmRuntime {
         let _plugin = self.plugins.get(plugin_name)
             .ok_or_else(|| anyhow!("Plugin '{}' is not loaded", plugin_name))?;
         
-        // This is a placeholder implementation
-        println!("Called command '{}' in plugin '{}' with args: {:?}",
+        // This is a placeholder implementation with enhanced debug output
+        println!("DEBUG: Called command '{}' in plugin '{}' with args: {:?}",
             command_name, plugin_name, args);
         
         // For the noxvim plugin, we'll simulate handling the NoxChat command
         if plugin_name == "noxvim" && command_name == "NoxChat" {
-            println!("NoxVim plugin is handling the NoxChat command");
+            println!("DEBUG: NoxVim plugin is handling the NoxChat command");
+            println!("DEBUG: Creating chat interface...");
+            
+            // Simulate creating buffers
+            println!("DEBUG: Created output buffer with ID 2");
+            println!("DEBUG: Created input buffer with ID 3");
+            
+            // Simulate displaying welcome message
+            println!("DEBUG: Displaying welcome message in output buffer");
+            println!("# Welcome to NoxVim!\n\nI'm your AI assistant. How can I help you today?\n\n- Type your request below and press Ctrl-] to send it\n- Use specific commands like `:NoxGenerate` for targeted tasks\n- Toggle auto-approve mode with `:NoxToggleAutoApprove`");
+            
             return Ok(true);
         }
         

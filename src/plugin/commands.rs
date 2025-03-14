@@ -71,13 +71,24 @@ pub fn register_plugin_commands(registry: &mut ExCommandRegistry, plugin_manager
 ///
 /// This function executes a plugin command with the given arguments.
 fn handle_plugin_command(name: &str, args: &[String], plugin_manager: Arc<Mutex<PluginManager>>) -> ExCommandResult<()> {
+    // Add debug output
+    println!("DEBUG: handle_plugin_command called with name: {}, args: {:?}", name, args);
+    
     // Convert the arguments to a slice of &str
     let args_str: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
 
     // Execute the command
     let mut plugin_manager = plugin_manager.lock().unwrap();
+    println!("DEBUG: Acquired lock on plugin_manager, executing command: {}", name);
+    
     match plugin_manager.execute_command(name, &args_str) {
-        Ok(_) => Ok(()),
-        Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to execute plugin command: {}", err))),
+        Ok(_) => {
+            println!("DEBUG: Command {} executed successfully", name);
+            Ok(())
+        },
+        Err(err) => {
+            println!("DEBUG: Command {} failed with error: {}", name, err);
+            Err(ExCommandError::InvalidCommand(format!("Failed to execute plugin command: {}", err)))
+        },
     }
 }

@@ -314,6 +314,9 @@ impl PluginManager {
     
     /// Execute a command in a plugin
     pub fn execute_command(&mut self, command: &str, args: &[&str]) -> Result<()> {
+        // Add debug output
+        println!("DEBUG: plugin_manager.execute_command called with command: {}, args: {:?}", command, args);
+        
         // Log the command execution
         self.debug_manager.log(
             "plugin_manager",
@@ -334,13 +337,26 @@ impl PluginManager {
         // In a real implementation, we would have a registry of commands
         let mut success = false;
         
+        println!("DEBUG: Searching for plugin to handle command: {}", command);
         for plugin_name in self.plugins.keys() {
+            println!("DEBUG: Trying plugin: {} for command: {}", plugin_name, command);
+            
             // Try to call the command handler in this plugin
             let result = self.runtime.call_command(plugin_name, command, args);
+            
+            match &result {
+                Ok(handled) => {
+                    println!("DEBUG: Plugin {} returned handled={} for command: {}", plugin_name, handled, command);
+                },
+                Err(err) => {
+                    println!("DEBUG: Plugin {} returned error for command {}: {}", plugin_name, command, err);
+                }
+            }
             
             if let Ok(true) = result {
                 // The plugin handled the command
                 success = true;
+                println!("DEBUG: Plugin {} successfully handled command: {}", plugin_name, command);
                 break;
             }
         }
@@ -349,8 +365,10 @@ impl PluginManager {
         self.debug_manager.end_trace(&trace_id)?;
         
         if success {
+            println!("DEBUG: Command {} executed successfully", command);
             Ok(())
         } else {
+            println!("DEBUG: Command {} not found", command);
             Err(anyhow!("Command not found: {}", command))
         }
     }
