@@ -3,13 +3,13 @@
 //! This module handles the parsing and execution of Vim commands.
 
 mod ex;
-mod handlers;
+pub mod handlers;
 
 pub use ex::{
     ExCommand, ExCommandError, ExCommandParser, ExCommandRegistry,
     ExCommandResult, Range, RangeSpec, CommandFlags
 };
-pub use handlers::{register_handlers, should_quit, reset_quit_flag, set_editor};
+pub use handlers::{register_handlers, should_quit, reset_quit_flag, set_editor, handle_edit, handle_split};
 
 /// Command types
 #[derive(Debug, Clone, PartialEq)]

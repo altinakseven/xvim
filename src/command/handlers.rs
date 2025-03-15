@@ -3,6 +3,7 @@
 //! This module implements handlers for ex commands.
 
 use crate::command::{ExCommand, ExCommandError, ExCommandResult, ExCommandRegistry};
+use crate::cursor::CursorPosition;
 use crate::editor::Editor;
 use crate::plugin::PluginManager;
 use std::sync::{Arc, Mutex};
@@ -191,7 +192,7 @@ pub fn reset_quit_flag() {
 }
 
 /// Handle the :edit command
-fn handle_edit(cmd: &ExCommand) -> ExCommandResult<()> {
+pub fn handle_edit(cmd: &ExCommand) -> ExCommandResult<()> {
     // Get the editor reference
     let editor = unsafe {
         match EDITOR {
@@ -282,22 +283,39 @@ fn handle_read(cmd: &ExCommand) -> ExCommandResult<()> {
                 let cursor_pos = editor.cursor_position();
                 
                 // Get a mutable reference to the buffer
-                // Since we don't have direct access to the buffer manager, we need to use the editor's methods
+                let buffer = editor.get_buffer_manager_mut().get_buffer_mut(buffer_id)?;
                 
-                // Delete the lines
-                match editor.delete_lines_from_cursor(buffer_id, cursor_pos.line, cursor_pos.line) {
-                    Ok(_) => {
-                        // Now we need to insert the content at the cursor position
-                        // Since we don't have a direct method to insert text at the cursor position,
-                        // we'll use a workaround: save the current buffer, modify it, and reload it
-                        
-                        // For now, just print a message
-                        println!("\"{}\" read", path.display());
-                        println!("(Read functionality partially implemented - file content not inserted yet)");
-                        Ok(())
-                    },
-                    Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to prepare buffer for insertion: {}", err))),
-                }
+                // Find the end of the current line
+                let line_end_idx = if cursor_pos.line < buffer.line_count() {
+                    // If we're not at the last line, find the start of the next line
+                    if cursor_pos.line + 1 < buffer.line_count() {
+                        buffer.position_to_char_idx(cursor_pos.line + 1, 0)?
+                    } else {
+                        // If we're at the last line, go to the end of the buffer
+                        buffer.content().len()
+                    }
+                } else {
+                    // If we're beyond the last line, append to the end of the buffer
+                    buffer.content().len()
+                };
+                
+                // Insert a newline if we're not at the end of the buffer
+                let insert_content = if line_end_idx < buffer.content().len() && !content.starts_with('\n') {
+                    format!("\n{}", content)
+                } else {
+                    content
+                };
+                
+                // Insert the content at the end of the current line
+                buffer.insert(line_end_idx, &insert_content)?;
+                
+                // Update the cursor position to the beginning of the inserted content
+                let new_line = cursor_pos.line + 1;
+                let new_pos = CursorPosition::new(new_line, 0);
+                editor.get_cursor_manager_mut().set_position(new_pos);
+                
+                println!("\"{}\" read", path.display());
+                Ok(())
             },
             Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to read file: {}", err))),
         }
@@ -307,73 +325,349 @@ fn handle_read(cmd: &ExCommand) -> ExCommandResult<()> {
 }
 
 /// Handle the :split command
-fn handle_split(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement split command
-    // This would split the current window horizontally
-    Ok(())
+pub fn handle_split(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Get the current buffer ID
+    let current_buffer_id = match editor.current_buffer_id() {
+        Some(id) => id,
+        None => return Err(ExCommandError::InvalidCommand("No buffer to split".to_string())),
+    };
+    
+    // If a file path is provided, open that file in the new window
+    let buffer_id = if let Some(file_path) = cmd.first_arg() {
+        match editor.get_buffer_manager_mut().open_file(file_path) {
+            Ok(id) => id,
+            Err(err) => {
+                // If the file doesn't exist, create a new empty buffer
+                if let crate::buffer::BufferManagerError::Io(io_err) = &err {
+                    if io_err.kind() == std::io::ErrorKind::NotFound {
+                        // Create a new buffer
+                        match editor.get_buffer_manager_mut().create_buffer() {
+                            Ok(id) => id,
+                            Err(e) => return Err(ExCommandError::Other(format!("Failed to create buffer: {}", e))),
+                        }
+                    } else {
+                        return Err(ExCommandError::Other(format!("Failed to open file: {}", err)));
+                    }
+                } else {
+                    return Err(ExCommandError::Other(format!("Failed to open file: {}", err)));
+                }
+            }
+        }
+    } else {
+        // Otherwise, use the current buffer
+        current_buffer_id
+    };
+    
+    // Split the window horizontally
+    match editor.get_terminal_mut().split_window(crate::ui::window::SplitDirection::Horizontal, buffer_id) {
+        Ok(_) => {
+            println!("Window split horizontally");
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to split window: {}", err))),
+    }
 }
 
 /// Handle the :vsplit command
-fn handle_vsplit(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement vsplit command
-    // This would split the current window vertically
-    Ok(())
+fn handle_vsplit(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Get the current buffer ID
+    let current_buffer_id = match editor.current_buffer_id() {
+        Some(id) => id,
+        None => return Err(ExCommandError::InvalidCommand("No buffer to split".to_string())),
+    };
+    
+    // If a file path is provided, open that file in the new window
+    let buffer_id = if let Some(file_path) = cmd.first_arg() {
+        match editor.get_buffer_manager_mut().open_file(file_path) {
+            Ok(id) => id,
+            Err(err) => {
+                // If the file doesn't exist, create a new empty buffer
+                if let crate::buffer::BufferManagerError::Io(io_err) = &err {
+                    if io_err.kind() == std::io::ErrorKind::NotFound {
+                        // Create a new buffer
+                        match editor.get_buffer_manager_mut().create_buffer() {
+                            Ok(id) => id,
+                            Err(e) => return Err(ExCommandError::Other(format!("Failed to create buffer: {}", e))),
+                        }
+                    } else {
+                        return Err(ExCommandError::Other(format!("Failed to open file: {}", err)));
+                    }
+                } else {
+                    return Err(ExCommandError::Other(format!("Failed to open file: {}", err)));
+                }
+            }
+        }
+    } else {
+        // Otherwise, use the current buffer
+        current_buffer_id
+    };
+    
+    // Split the window vertically
+    match editor.get_terminal_mut().split_window(crate::ui::window::SplitDirection::Vertical, buffer_id) {
+        Ok(_) => {
+            println!("Window split vertically");
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to split window: {}", err))),
+    }
 }
 
 /// Handle the :close command
 fn handle_close(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement close command
-    // This would close the current window
-    Ok(())
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Close the current window
+    match editor.get_terminal_mut().close_current_window() {
+        Ok(true) => {
+            println!("Window closed");
+            Ok(())
+        },
+        Ok(false) => {
+            // If there's only one window left, we can't close it
+            Err(ExCommandError::InvalidCommand("Cannot close last window in tab".to_string()))
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to close window: {}", err))),
+    }
 }
 
 /// Handle the :only command
 fn handle_only(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement only command
-    // This would close all windows except the current one
-    Ok(())
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Get the current tab
+    if let Some(tab) = editor.get_terminal_mut().current_tab_mut() {
+        // Get the current window ID
+        let current_window_id = tab.window_manager.current_window_id();
+        
+        // Get all window IDs
+        let window_ids: Vec<usize> = tab.window_manager.windows()
+            .iter()
+            .filter(|w| w.id != current_window_id)
+            .map(|w| w.id)
+            .collect();
+        
+        // Close each window except the current one
+        let mut count = 0;
+        for window_id in window_ids {
+            if tab.window_manager.close_window(window_id) {
+                count += 1;
+            }
+        }
+        
+        if count > 0 {
+            println!("{} window{} closed", count, if count == 1 { "" } else { "s" });
+        } else {
+            println!("No other windows to close");
+        }
+        Ok(())
+    } else {
+        println!("No active tab");
+        Ok(())
+    }
 }
 
 /// Handle the :wnext command
 fn handle_wnext(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement wnext command
-    // This would move to the next window
-    Ok(())
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Navigate to the next window
+    match editor.get_terminal_mut().next_window() {
+        Ok(true) => {
+            println!("Moved to next window");
+            Ok(())
+        },
+        Ok(false) => {
+            // If there's only one window, we can't navigate
+            println!("No more windows");
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to navigate to next window: {}", err))),
+    }
 }
 
 /// Handle the :wprev command
 fn handle_wprev(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement wprev command
-    // This would move to the previous window
-    Ok(())
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Navigate to the previous window
+    match editor.get_terminal_mut().prev_window() {
+        Ok(true) => {
+            println!("Moved to previous window");
+            Ok(())
+        },
+        Ok(false) => {
+            // If there's only one window, we can't navigate
+            println!("No more windows");
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to navigate to previous window: {}", err))),
+    }
 }
 
 /// Handle the :tabedit command
-fn handle_tabedit(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement tabedit command
-    // This would open a file in a new tab
-    Ok(())
+fn handle_tabedit(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Get the file path from the command arguments
+    let file_path = match cmd.first_arg() {
+        Some(path) => path,
+        None => return Err(ExCommandError::MissingArgument("File name required".to_string())),
+    };
+    
+    // Create a new buffer for the file
+    let buffer_id = match editor.get_buffer_manager_mut().open_file(file_path) {
+        Ok(id) => id,
+        Err(err) => {
+            // If the file doesn't exist, create a new empty buffer
+            if let crate::buffer::BufferManagerError::Io(io_err) = &err {
+                if io_err.kind() == std::io::ErrorKind::NotFound {
+                    // Create a new buffer
+                    match editor.get_buffer_manager_mut().create_buffer() {
+                        Ok(id) => id,
+                        Err(e) => return Err(ExCommandError::Other(format!("Failed to create buffer: {}", e))),
+                    }
+                } else {
+                    return Err(ExCommandError::Other(format!("Failed to open file: {}", err)));
+                }
+            } else {
+                return Err(ExCommandError::Other(format!("Failed to open file: {}", err)));
+            }
+        }
+    };
+    
+    // Create a new tab with the buffer
+    match editor.get_terminal_mut().create_tab(buffer_id, Some(file_path.to_string())) {
+        Ok(_) => {
+            // Set the current buffer to the new buffer
+            if let Err(err) = editor.get_buffer_manager_mut().set_current_buffer(buffer_id) {
+                return Err(ExCommandError::Other(format!("Failed to set current buffer: {}", err)));
+            }
+            
+            println!("\"{}\" opened in new tab", file_path);
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to create tab: {}", err))),
+    }
 }
 
 /// Handle the :tabclose command
 fn handle_tabclose(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement tabclose command
-    // This would close the current tab
-    Ok(())
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Close the current tab
+    match editor.get_terminal_mut().close_current_tab() {
+        Ok(true) => {
+            println!("Tab closed");
+            Ok(())
+        },
+        Ok(false) => {
+            // If there's only one tab left, we can't close it
+            Err(ExCommandError::InvalidCommand("Cannot close last tab".to_string()))
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to close tab: {}", err))),
+    }
 }
 
 /// Handle the :tabnext command
 fn handle_tabnext(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement tabnext command
-    // This would move to the next tab
-    Ok(())
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Navigate to the next tab
+    match editor.get_terminal_mut().next_tab() {
+        Ok(true) => {
+            println!("Moved to next tab");
+            Ok(())
+        },
+        Ok(false) => {
+            // If there's only one tab, we can't navigate
+            println!("No more tabs");
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to navigate to next tab: {}", err))),
+    }
 }
 
 /// Handle the :tabprev command
 fn handle_tabprev(_cmd: &ExCommand) -> ExCommandResult<()> {
-    // TODO: Implement tabprev command
-    // This would move to the previous tab
-    Ok(())
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Navigate to the previous tab
+    match editor.get_terminal_mut().prev_tab() {
+        Ok(true) => {
+            println!("Moved to previous tab");
+            Ok(())
+        },
+        Ok(false) => {
+            // If there's only one tab, we can't navigate
+            println!("No more tabs");
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to navigate to previous tab: {}", err))),
+    }
 }
 
 /// Handle the :delete command

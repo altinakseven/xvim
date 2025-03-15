@@ -250,10 +250,10 @@ impl Editor {
         };
         
         // Create an initial empty buffer
-        let buffer_id = editor.buffer_manager.create_buffer()?;
+        let buffer_id = editor.get_buffer_manager_mut().create_buffer()?;
         
         // Initialize the tabs in the terminal UI
-        editor.terminal.init_tabs(buffer_id)?;
+        editor.get_terminal_mut().init_tabs(buffer_id)?;
         
         // Set up default key mappings
         editor.setup_default_key_mappings();
@@ -508,6 +508,37 @@ impl Editor {
     pub fn current_buffer_id(&self) -> Option<usize> {
         self.buffer_manager.current_buffer_id()
     }
+    
+    /// Get a reference to the buffer manager
+    pub fn get_buffer_manager(&self) -> &BufferManager {
+        &self.buffer_manager
+    }
+    
+    /// Get a mutable reference to the buffer manager
+    pub fn get_buffer_manager_mut(&mut self) -> &mut BufferManager {
+        &mut self.buffer_manager
+    }
+    
+    /// Get a reference to the cursor manager
+    pub fn get_cursor_manager(&self) -> &CursorManager {
+        &self.cursor_manager
+    }
+    
+    /// Get a mutable reference to the cursor manager
+    pub fn get_cursor_manager_mut(&mut self) -> &mut CursorManager {
+        &mut self.cursor_manager
+    }
+    
+    /// Get a reference to the terminal UI
+    pub fn get_terminal(&self) -> &TerminalUi {
+        &self.terminal
+    }
+    
+    /// Get a mutable reference to the terminal UI
+    pub fn get_terminal_mut(&mut self) -> &mut TerminalUi {
+        &mut self.terminal
+    }
+    
     
     /// Save the current buffer
     pub fn save_current_buffer(&mut self) -> EditorResult<()> {

@@ -22,7 +22,7 @@ This document tracks the current state of the xvim project, highlighting what ha
   - [x] `:quit`, `:q` - Quit
   - [x] `:wquit`, `:wq`, `:xit`, `:x` - Write and quit
   - [x] `:edit`, `:e` - Edit file
-  - [x] `:read`, `:r` - Read file into buffer (partial)
+  - [x] `:read`, `:r` - Read file into buffer
 
 - [x] Window Operations
   - [x] `:split`, `:sp` - Split window horizontally (stub)
@@ -102,7 +102,7 @@ This document tracks the current state of the xvim project, highlighting what ha
 - [x] Initial Plugin API definition
 - [x] Plugin loading and management
 - [x] Event system for plugins
-- [x] NoxChat command for AI assistance
+- [x] NoxChat command for AI assistance with split window interface
 - [ ] Full WASM runtime implementation
 - [ ] Comprehensive Plugin API
 
@@ -122,6 +122,15 @@ This document tracks the current state of the xvim project, highlighting what ha
 - [ ] Key mapping configuration
 
 ## Recent Updates
+
+### March 15, 2025
+- Completed the implementation of the `:read` command to fully insert file content
+- Improved window navigation with `:wnext` and `:wprev` commands
+- Fixed the `:noxchat` command to properly create split windows for AI chat:
+  - Integrated approach inspired by claude.vim plugin
+  - Separated buffer creation from window splitting to avoid UI deadlocks
+  - Used Ex commands for window manipulation instead of direct UI calls
+  - Improved lock management to prevent potential deadlocks
 
 ### March 14, 2025
 - Installed Rust toolchain (rustc 1.85.0, cargo 1.85.0) for running tests
@@ -159,11 +168,9 @@ This document tracks the current state of the xvim project, highlighting what ha
 
 ## Known Issues
 
-1. `:read` command doesn't fully insert content yet
-2. Some commands are implemented as stubs and need full implementation
-3. Error handling could be improved in some areas
-4. Need more comprehensive tests for edge cases
-5. The `:noxchat` command creates buffers but doesn't attempt to split the window directly due to potential deadlocks in the UI system
-6. There are compilation warnings throughout the codebase that should be addressed
-7. There is a persistent compilation error in the plugin system that needs to be fixed before the editor can be run
-8. The AI conversation functionality is partially implemented but not fully integrated with the editor
+1. Some commands are implemented as stubs and need full implementation
+2. Error handling could be improved in some areas
+3. Need more comprehensive tests for edge cases
+4. There are compilation warnings throughout the codebase that should be addressed
+5. There are still persistent compilation errors in the codebase that need to be fixed before the editor can be run, despite our progress in fixing the `:noxchat` command
+6. The AI conversation functionality is partially implemented but not fully integrated with the editor

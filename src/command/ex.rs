@@ -21,6 +21,8 @@ pub enum ExCommandError {
     MissingArgument(String),
     /// Unknown command
     UnknownCommand(String),
+    /// Other errors
+    Other(String),
 }
 
 impl fmt::Display for ExCommandError {
@@ -31,11 +33,24 @@ impl fmt::Display for ExCommandError {
             ExCommandError::InvalidArgument(msg) => write!(f, "Invalid argument: {}", msg),
             ExCommandError::MissingArgument(msg) => write!(f, "Missing argument: {}", msg),
             ExCommandError::UnknownCommand(cmd) => write!(f, "Unknown command: {}", cmd),
+            ExCommandError::Other(msg) => write!(f, "{}", msg),
         }
     }
 }
 
 impl std::error::Error for ExCommandError {}
+
+impl From<crate::buffer::BufferManagerError> for ExCommandError {
+    fn from(err: crate::buffer::BufferManagerError) -> Self {
+        ExCommandError::Other(format!("Buffer manager error: {}", err))
+    }
+}
+
+impl From<crate::buffer::BufferError> for ExCommandError {
+    fn from(err: crate::buffer::BufferError) -> Self {
+        ExCommandError::Other(format!("Buffer error: {}", err))
+    }
+}
 
 /// Result type for ex command operations
 pub type ExCommandResult<T> = Result<T, ExCommandError>;

@@ -53,8 +53,11 @@ We've fixed issues with the NoxChat command in the plugin system:
 5. Removed debug print statements from the plugin system to improve performance and reduce noise
 6. Fixed potential deadlocks in the plugin command handling by carefully managing lock acquisition order
 7. Simplified the chat interface creation to avoid UI-related deadlocks
+8. Implemented a proper split window interface for the NoxChat command using Ex commands
+9. Made necessary command handlers public to enable proper window manipulation
+10. Fixed import issues to ensure all required types are available
 
-The NoxChat command now creates two buffers (output and input) but doesn't attempt to split the window directly, which was causing deadlocks. This approach is more robust and avoids potential race conditions in the UI system.
+The NoxChat command now creates two buffers (output and input) and properly splits the window to display both, using Ex commands for window manipulation instead of direct UI calls. This approach is more robust and avoids potential race conditions and deadlocks in the UI system.
 
 ### Normal Mode Enhancements
 
@@ -127,13 +130,15 @@ Our error handling strategy focuses on:
 
 ### Immediate Tasks
 
-1. Complete the implementation of the `:read` command to fully insert file content
+1. ~~Complete the implementation of the `:read` command to fully insert file content~~ ✓ Completed
 2. ~~Implement Visual mode selection and operations~~ ✓ Completed
 3. Implement Insert mode text entry
 4. Begin work on the WASM plugin system
 5. Enhance Visual mode with more text objects and operations
-6. Fix the compilation error in the plugin system related to the NoxChat command
-7. Address the numerous warnings throughout the codebase
+6. ~~Fix the compilation error in the plugin system related to the NoxChat command~~ ✓ Completed
+7. ~~Implement proper window splitting for the NoxChat command~~ ✓ Completed
+8. Fix the remaining compilation errors in the codebase to make the editor runnable
+9. Address the numerous warnings throughout the codebase
 =======
 
 ### Short-term Goals

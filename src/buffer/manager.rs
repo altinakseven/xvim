@@ -19,6 +19,8 @@ pub enum BufferManagerError {
     FileNotFound(PathBuf),
     /// Error from buffer operations
     BufferError(BufferError),
+    /// I/O error
+    Io(std::io::Error),
     /// Other errors
     Other(String),
 }
@@ -29,6 +31,7 @@ impl fmt::Display for BufferManagerError {
             BufferManagerError::BufferNotFound(id) => write!(f, "Buffer {} not found", id),
             BufferManagerError::FileNotFound(path) => write!(f, "No buffer for file {:?}", path),
             BufferManagerError::BufferError(err) => write!(f, "Buffer error: {}", err),
+            BufferManagerError::Io(err) => write!(f, "I/O error: {}", err),
             BufferManagerError::Other(msg) => write!(f, "{}", msg),
         }
     }
@@ -39,6 +42,12 @@ impl Error for BufferManagerError {}
 impl From<BufferError> for BufferManagerError {
     fn from(err: BufferError) -> Self {
         BufferManagerError::BufferError(err)
+    }
+}
+
+impl From<std::io::Error> for BufferManagerError {
+    fn from(err: std::io::Error) -> Self {
+        BufferManagerError::Io(err)
     }
 }
 

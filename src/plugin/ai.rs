@@ -262,7 +262,7 @@ impl AiConversationManager {
 /// Create a chat interface
 ///
 /// This creates a split window with an input buffer at the bottom
-/// and an output buffer at the top.
+/// and an output buffer at the top, inspired by the claude.vim plugin approach.
 pub fn create_chat_interface(buffer_manager: &mut BufferManager, plugin_manager: &mut PluginManager) -> Result<(usize, usize)> {
     eprintln!("DEBUG: Starting create_chat_interface");
     
@@ -343,79 +343,13 @@ pub fn create_chat_interface(buffer_manager: &mut BufferManager, plugin_manager:
         return Err(anyhow!("Failed to set current buffer: {}", e));
     }
     
-    // Get the UI manager from the plugin manager
-    eprintln!("DEBUG: Getting UI manager from plugin manager");
-    let ui_manager = match plugin_manager.ui_manager() {
-        Some(ui) => ui,
-        None => {
-            eprintln!("DEBUG: UI manager not available");
-            return Err(anyhow!("UI manager not available"));
-        }
-    };
+    // Instead of directly splitting the window here, we'll return the buffer IDs
+    // and let the command handler handle the window splitting using Ex commands
+    // This approach is inspired by claude.vim which avoids UI-related deadlocks
+    eprintln!("DEBUG: Chat interface buffers created successfully");
     
-    // Get the terminal UI from the UI manager
-    eprintln!("DEBUG: Getting terminal UI from UI manager");
-    let terminal_arc = match ui_manager.terminal() {
-        Some(terminal) => terminal,
-        None => return Err(anyhow!("Terminal UI not available")),
-    };
-    
-    // Lock the mutex to get a mutable reference to the TerminalUi
-    eprintln!("DEBUG: Locking terminal UI mutex");
-    let mut terminal = match terminal_arc.lock() {
-        Ok(guard) => guard,
-        Err(_) => return Err(anyhow!("Failed to lock terminal UI mutex")),
-    };
-    
-    // Get the output buffer ID (current buffer before split)
-    let current_buffer_id = match terminal.current_window() {
-        Some(window) => window.buffer_id,
-        None => return Err(anyhow!("No current window")),
-    };
-    
-    // Make sure we're using the correct output buffer ID
-    if current_buffer_id != output_buffer_id {
-        eprintln!("DEBUG: Warning: Current buffer ID ({}) doesn't match output buffer ID ({})",
-                 current_buffer_id, output_buffer_id);
-    }
-    
-    // Split the window horizontally to create the input area at the bottom
-    eprintln!("DEBUG: Splitting window horizontally");
-    let split_result = terminal.split_window(crate::ui::window::SplitDirection::Horizontal, input_buffer_id)?;
-    
-    // Return based on the split result
-    match split_result {
-        Some(window_id) => {
-            eprintln!("DEBUG: Split window successfully, new window ID: {}", window_id);
-            
-            // Navigate to the input window
-            let next_result = terminal.next_window()?;
-            
-            if next_result {
-                eprintln!("DEBUG: Navigated to input window");
-            } else {
-                eprintln!("DEBUG: Failed to navigate to input window");
-            }
-            
-            // Return to the output window
-            let prev_result = terminal.prev_window()?;
-            
-            if prev_result {
-                eprintln!("DEBUG: Returned to output window");
-            } else {
-                eprintln!("DEBUG: Failed to return to output window");
-            }
-            
-            eprintln!("DEBUG: Chat interface created successfully");
-            
-            // Return the buffer IDs for the output and input buffers
-            Ok((output_buffer_id, input_buffer_id))
-        },
-        None => {
-            eprintln!("DEBUG: Failed to split window, no window ID returned");
-            Err(anyhow!("Failed to split window"))
-        }
-    }
+    // Return the buffer IDs for the output and input buffers
+    Ok((output_buffer_id, input_buffer_id))
 }
 
 // The get_ai_manager function has been removed since we're handling the conversation directly

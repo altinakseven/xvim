@@ -2,7 +2,7 @@
 //!
 //! This module handles the integration of plugin commands with the editor's command system.
 
-use crate::command::{ExCommand, ExCommandError, ExCommandResult, ExCommandRegistry};
+use crate::command::{ExCommand, ExCommandError, ExCommandResult, ExCommandRegistry, Range, CommandFlags};
 use crate::plugin::PluginManager;
 use crate::plugin::ai;
 use std::sync::{Arc, Mutex};
@@ -208,6 +208,12 @@ fn handle_plugin_command(name: &str, args: &[String], plugin_manager: Arc<Mutex<
             None => return Err(ExCommandError::InvalidCommand("Buffer manager not available".to_string())),
         };
         
+        // Get the command registry
+        let command_registry = match context_guard.command_registry() {
+            Some(cr) => cr,
+            None => return Err(ExCommandError::InvalidCommand("Command registry not available".to_string())),
+        };
+        
         // Drop the context lock to avoid deadlocks
         drop(context_guard);
         
@@ -223,8 +229,8 @@ fn handle_plugin_command(name: &str, args: &[String], plugin_manager: Arc<Mutex<
             Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock plugin manager again".to_string())),
         };
         
-        // Create the chat interface
-        eprintln!("DEBUG: Creating chat interface");
+        // Create the chat interface buffers
+        eprintln!("DEBUG: Creating chat interface buffers");
         match ai::create_chat_interface(&mut buffer_manager_guard, &mut plugin_manager_guard) {
             Ok((output_buffer_id, input_buffer_id)) => {
                 eprintln!("DEBUG: Created chat interface with output buffer ID {} and input buffer ID {}", output_buffer_id, input_buffer_id);
@@ -251,6 +257,68 @@ fn handle_plugin_command(name: &str, args: &[String], plugin_manager: Arc<Mutex<
                     eprintln!("DEBUG: Created conversation with ID {}", conversation_id);
                 }
                 
+                // Get the command registry lock
+                let command_registry_guard = match command_registry.lock() {
+                    Ok(guard) => guard,
+                    Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock command registry".to_string())),
+                };
+                
+                // Drop locks before executing commands to avoid deadlocks
+                drop(buffer_manager_guard);
+                drop(plugin_manager_guard);
+                drop(command_registry_guard);
+                
+                // Now use Ex commands to create the split window layout
+                // This approach is inspired by claude.vim which avoids UI-related deadlocks
+                
+                // First, make sure we're viewing the output buffer
+                let output_buffer_name = format!("NoxVim-Output");
+                let edit_cmd = ExCommand {
+                    name: "edit".to_string(),
+                    args: vec![output_buffer_name],
+                    range: Range::new(None, None),
+                    flags: CommandFlags::default(),
+                    raw: format!("edit NoxVim-Output"),
+                };
+                
+                // Execute the edit command
+                if let Err(e) = crate::command::handlers::handle_edit(&edit_cmd) {
+                    eprintln!("DEBUG: Failed to switch to output buffer: {}", e);
+                    // Continue anyway, as we've already created the buffers
+                }
+                
+                // Now split the window horizontally and open the input buffer in the bottom window
+                let split_cmd = ExCommand {
+                    name: "split".to_string(),
+                    args: vec![],
+                    range: Range::new(None, None),
+                    flags: CommandFlags::default(),
+                    raw: format!("split"),
+                };
+                
+                // Execute the split command
+                if let Err(e) = crate::command::handlers::handle_split(&split_cmd) {
+                    eprintln!("DEBUG: Failed to split window: {}", e);
+                    // Continue anyway, as we've already created the buffers
+                }
+                
+                // Switch to the input buffer in the new window
+                let input_buffer_name = format!("NoxVim-Input");
+                let edit_cmd = ExCommand {
+                    name: "edit".to_string(),
+                    args: vec![input_buffer_name],
+                    range: Range::new(None, None),
+                    flags: CommandFlags::default(),
+                    raw: format!("edit NoxVim-Input"),
+                };
+                
+                // Execute the edit command
+                if let Err(e) = crate::command::handlers::handle_edit(&edit_cmd) {
+                    eprintln!("DEBUG: Failed to switch to input buffer: {}", e);
+                    // Continue anyway, as we've already created the buffers
+                }
+                
+                eprintln!("DEBUG: Chat interface created successfully");
                 return Ok(());
             },
             Err(e) => {
