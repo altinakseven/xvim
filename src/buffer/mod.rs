@@ -21,6 +21,9 @@ use std::cmp::min;
 use regex::Regex;
 use std::collections::HashMap;
 
+// Forward declaration for VisualArea to avoid circular dependency
+pub use crate::visual::VisualArea;
+
 // Mark definitions (moved from mark module)
 /// A mark is a named position in a buffer
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -190,6 +193,8 @@ pub struct Buffer {
     marks: MarkMap,
     /// Syntax highlighting data
     syntax: syntax::BufferSyntax,
+    /// Visual area for 'gv' command
+    pub(crate) visual_area: Option<crate::visual::VisualArea>,
 }
 
 impl Buffer {
@@ -213,6 +218,7 @@ impl Buffer {
             change_history: ChangeHistory::new(),
             marks: MarkMap::new(),
             syntax: syntax::BufferSyntax::new(),
+            visual_area: None,
         }
     }
 
@@ -247,6 +253,7 @@ impl Buffer {
             change_history: ChangeHistory::new(),
             marks: MarkMap::new(),
             syntax: syntax::BufferSyntax::new(),
+            visual_area: None,
         };
         
         // Try to auto-detect syntax based on file extension
@@ -265,6 +272,11 @@ impl Buffer {
     /// Get the buffer name
     pub fn name(&self) -> &str {
         &self.name
+    }
+    
+    /// Set the buffer name
+    pub fn set_name(&mut self, name: String) {
+        self.name = name;
     }
     
     /// Get the file path, if any

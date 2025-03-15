@@ -1,98 +1,52 @@
-
-# Project Brief: xvim
+# xvim Project Brief
 
 ## Project Overview
 
-xvim is a ground-up rewrite of the Vim text editor in pure Rust, maintaining full compatibility with Vim's CLI interface while modernizing its architecture and plugin system. The project aims to preserve Vim's efficiency and modal editing paradigm while enabling a more powerful, secure, and flexible extension ecosystem through WebAssembly.
+xvim is a ground-up rewrite of the Vim text editor in pure Rust with a WebAssembly (WASM) plugin system. The goal is to create a modern, extensible text editor that maintains the familiar keybindings and functionality of Vim while leveraging the safety and performance benefits of Rust.
 
-## Core Goals
+## Core Objectives
 
-1. **Complete Vim Compatibility**: Implement all standard Vim CLI functionality with identical behavior and command syntax
-2. **Pure Rust Implementation**: Build the entire codebase in Rust for memory safety, performance, and maintainability
-3. **WASM Plugin System**: Create a plugin API supporting WebAssembly modules using the latest WASI standard
-4. **Enhanced Plugin Capabilities**: Support both traditional Vim plugin patterns and Neovim's Lua-style advanced APIs
-5. **Comprehensive Documentation**: Provide thorough documentation of the codebase, plugin API, and usage guides
+1. **Vim Compatibility**: Maintain compatibility with core Vim functionality and keybindings
+2. **Rust Implementation**: Utilize Rust's safety features and performance
+3. **WASM Plugin System**: Create a flexible plugin system using WebAssembly
+4. **Cross-Platform**: Support for multiple platforms (Linux, macOS, Windows)
+5. **Modern Features**: Implement modern editor features while maintaining Vim's efficiency
 
 ## Key Components
 
-### Core Editor
-- Modal editing engine with full Vim keybinding support
-- Text buffer management system
-- Window/viewport management
-- Configuration system compatible with .vimrc
-- Command parser and executor
+1. **Buffer Management**: Efficient text storage and manipulation
+2. **Command Mode**: Implementation of Ex commands
+3. **Normal Mode**: Vim-style navigation and editing
+4. **Visual Mode**: Text selection and manipulation
+5. **Insert Mode**: Text input
+6. **Window Management**: Split views and tab management
+7. **Plugin System**: WASM-based plugin architecture
+8. **UI Layer**: Terminal-based user interface using crossterm and ratatui
 
-### WASM Plugin Runtime
-- WASI-compatible execution environment
-- Plugin lifecycle management
-- Access controls and security boundaries
-- Interprocess communication between editor and plugins
+## Current Status
 
-### Plugin APIs
-- Complete VimScript capability equivalence
-- Neovim Lua API feature parity
-- Native Rust API for core plugin development
-- Event system for plugin reactivity
+The project is in active development with the following components implemented:
 
-### Documentation
-- Developer guides for xvim architecture
-- Plugin API reference documentation
-- User manual and keyboard reference
-- Migration guides for Vim/Neovim users
-
-## Technical Requirements
-
-### Editor Implementation
-- Implement all standard Vim commands and modes (normal, insert, visual, command)
-- Support for all Vim text objects and motions
-- Macro recording and playback
-- Register management
-- Complete syntax highlighting and folding
-- Session management
-- Buffer/window/tab management
-
-### WASM Plugin System
-- Support latest WASI preview specifications
-- Filesystem access controls
-- Network access controls (if needed)
-- Plugin hot-reloading
-- Performance profiling for plugins
-
-### API Requirements
-- Complete mapping of VimScript functionality
-- Buffer manipulation APIs
-- Window/UI manipulation
-- Filesystem access
-- Asynchronous job control
-- Extended UI capabilities (floating windows, decorations, etc.)
-
-### Documentation & Testing
-- Comprehensive test suite with high coverage
-- CI/CD integration
-- Markdown-based documentation in-repo
-- Generated API docs from code
-
-## Success Criteria
-
-1. xvim passes the Vim test suite with >95% compatibility
-2. Plugins can be written in WASM with capabilities matching or exceeding VimScript
-3. Documentation covers 100% of public APIs
-4. Performance meets or exceeds native Vim 
-5. Plugin ecosystem demonstrates successful ports of at least 5 popular Vim plugins
-
-## Timeline & Milestones
-
-1. **Foundation Phase**: Core editor architecture and basic Vim functionality
-2. **Feature Complete Phase**: Implementation of all standard Vim features
-3. **WASM Runtime Phase**: Develop and test the WASM plugin system
-4. **API Development Phase**: Complete implementation of plugin APIs
-5. **Documentation Phase**: Comprehensive documentation of all systems
-6. **Testing & Refinement Phase**: Extensive testing and performance optimization
-7. **Release Phase**: First stable public release
+1. **Buffer Management**: Basic implementation complete
+2. **Command Mode**: Ex commands implemented with proper error handling
+3. **UI Framework**: Basic terminal UI implemented
 
 ## Next Steps
 
-1. Establish the core architecture and module structure
-2. Implement basic buffer and window management
-3. Begin modal editing engine development
-4. Research WASI integration patterns for the plugin system
+1. Complete implementation of Normal mode
+2. Implement Visual mode
+3. Implement Insert mode
+4. Enhance window and tab management
+5. Develop the WASM plugin system
+6. Add syntax highlighting
+7. Implement search and replace functionality
+
+## Technical Stack
+
+- **Language**: Rust
+- **Terminal UI**: crossterm, ratatui
+- **Text Handling**: ropey, unicode-segmentation
+- **Plugin System**: wasmtime, wasi-common, wit-bindgen
+- **Configuration**: toml
+- **Error Handling**: anyhow
+- **Testing**: proptest, criterion, mockall

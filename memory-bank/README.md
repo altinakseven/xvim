@@ -1,71 +1,61 @@
-# Cline's Memory Bank
+# xvim Memory Bank
 
-This directory contains Cline's Memory Bank - a structured documentation system that enables Cline to maintain continuity and project knowledge across sessions.
+This directory contains documentation that serves as the "memory bank" for the xvim project. It provides comprehensive context and documentation to help developers understand the project, its goals, and its current state.
 
 ## Purpose
 
-Cline's memory resets completely between sessions. The Memory Bank provides a comprehensive documentation system that allows Cline to quickly understand the project context, current status, and next steps when starting a new session.
+The memory bank serves as a central repository of knowledge about the xvim project. It's designed to help developers:
 
-## Core Files
+1. Understand the project's goals and vision
+2. Get up to speed on the technical architecture
+3. Track the current state of development
+4. Identify next steps and priorities
+5. Maintain context across development sessions
 
-The Memory Bank consists of the following core files, organized in a hierarchical structure:
+## Files
 
-1. **projectbrief.md**
-   - Foundation document that shapes all other files
-   - Defines core requirements and goals
-   - Source of truth for project scope
+### Core Documentation
 
-2. **productContext.md**
-   - Why this project exists
-   - Problems it solves
-   - How it should work
-   - User experience goals
+- **[projectbrief.md](./projectbrief.md)**: Overview of the project, its goals, and key components
+- **[productContext.md](./productContext.md)**: Product vision, target users, and user experience goals
+- **[techContext.md](./techContext.md)**: Technical architecture, dependencies, and development environment
+- **[systemPatterns.md](./systemPatterns.md)**: Design patterns and architectural decisions
+- **[activeContext.md](./activeContext.md)**: Current focus, recent changes, and immediate next steps
+- **[progress.md](./progress.md)**: Detailed tracking of implemented features, in-progress work, and future plans
 
-3. **systemPatterns.md**
-   - System architecture
-   - Key technical decisions
-   - Design patterns in use
-   - Component relationships
+### Additional Documentation
 
-4. **techContext.md**
-   - Technologies used
-   - Development setup
-   - Technical constraints
-   - Dependencies
+The memory bank may also include additional files for specific aspects of the project:
 
-5. **activeContext.md**
-   - Current work focus
-   - Recent changes
-   - Next steps
-   - Active decisions and considerations
-
-6. **progress.md**
-   - What works
-   - What's left to build
-   - Current status
-   - Known issues
-
-## File Hierarchy
-
-The files build upon each other in a clear hierarchy:
-
-```
-projectbrief.md → productContext.md, systemPatterns.md, techContext.md → activeContext.md → progress.md
-```
-
-## Additional Context
-
-Additional files and folders may be created within the memory-bank directory as needed to organize:
-- Complex feature documentation
-- Integration specifications
+- Feature specifications
 - API documentation
-- Testing strategies
-- Deployment procedures
+- Design decisions
+- Meeting notes
+- Research findings
 
-## Usage
+## Usage Guidelines
 
-When working with Cline, you can request updates to the Memory Bank by using the phrase **"update memory bank"**. This will trigger Cline to review all Memory Bank files and update them based on the current project state.
+1. **Read First**: When joining the project or returning after a break, read through the memory bank files to get up to speed.
+2. **Update Regularly**: Update the memory bank files when making significant changes or decisions.
+3. **Keep Accurate**: Ensure that the information in the memory bank is accurate and up-to-date.
+4. **Cross-Reference**: Reference other memory bank files when appropriate to maintain a cohesive documentation set.
 
-## Project Rules
+## Maintenance
 
-The `.clinerules` file at the root of the project captures important patterns, preferences, and project intelligence that help Cline work more effectively. This file is updated as the project evolves to reflect emerging patterns and lessons learned.
+The memory bank should be maintained alongside the codebase. When making significant changes to the code:
+
+1. Update the `progress.md` file to reflect the new state of the project
+2. Update the `activeContext.md` file to capture current focus and decisions
+3. Update other files as needed to reflect changes in architecture, design, or goals
+
+## Benefits
+
+Maintaining the memory bank provides several benefits:
+
+1. **Knowledge Preservation**: Captures important context and decisions that might otherwise be lost
+2. **Onboarding**: Helps new developers get up to speed quickly
+3. **Continuity**: Maintains project momentum across development sessions
+4. **Alignment**: Keeps the team aligned on goals, priorities, and approach
+5. **Documentation**: Serves as living documentation that evolves with the project
+
+By keeping the memory bank up-to-date, we ensure that the xvim project remains well-documented and accessible to all contributors.

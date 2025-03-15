@@ -64,9 +64,6 @@ impl WasmRuntime {
         // Add the plugin to the map
         self.plugins.insert(name.to_string(), plugin);
         
-        // Log that we loaded the plugin
-        println!("Loaded plugin '{}' from '{}'", name, path.display());
-        
         Ok(())
     }
     
@@ -79,9 +76,6 @@ impl WasmRuntime {
         
         // Remove the plugin from the map
         self.plugins.remove(name);
-        
-        // Log that we unloaded the plugin
-        println!("Unloaded plugin '{}'", name);
         
         Ok(())
     }
@@ -98,9 +92,6 @@ impl WasmRuntime {
             .ok_or_else(|| anyhow!("Plugin '{}' is not loaded", plugin_name))?;
         
         // This is a placeholder implementation
-        println!("Called function '{}' in plugin '{}' with {} bytes of arguments",
-            function_name, plugin_name, args.len());
-        
         // Return empty result
         Ok(Vec::new())
     }
@@ -111,23 +102,8 @@ impl WasmRuntime {
         let _plugin = self.plugins.get(plugin_name)
             .ok_or_else(|| anyhow!("Plugin '{}' is not loaded", plugin_name))?;
         
-        // This is a placeholder implementation with enhanced debug output
-        println!("DEBUG: Called command '{}' in plugin '{}' with args: {:?}",
-            command_name, plugin_name, args);
-        
         // For the noxvim plugin, we'll simulate handling the NoxChat command
         if plugin_name == "noxvim" && command_name == "NoxChat" {
-            println!("DEBUG: NoxVim plugin is handling the NoxChat command");
-            println!("DEBUG: Creating chat interface...");
-            
-            // Simulate creating buffers
-            println!("DEBUG: Created output buffer with ID 2");
-            println!("DEBUG: Created input buffer with ID 3");
-            
-            // Simulate displaying welcome message
-            println!("DEBUG: Displaying welcome message in output buffer");
-            println!("# Welcome to NoxVim!\n\nI'm your AI assistant. How can I help you today?\n\n- Type your request below and press Ctrl-] to send it\n- Use specific commands like `:NoxGenerate` for targeted tasks\n- Toggle auto-approve mode with `:NoxToggleAutoApprove`");
-            
             return Ok(true);
         }
         
@@ -138,8 +114,6 @@ impl WasmRuntime {
     /// Send an event to all plugins
     pub fn send_event(&mut self, event: &super::events::EventType) -> Result<()> {
         // This is a placeholder implementation
-        println!("Sent event to all plugins: {:?}", event);
-        
         Ok(())
     }
 }

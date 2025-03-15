@@ -50,3 +50,7 @@ integration-tests = []
 # [[bench]]
 # name = "buffer_benchmarks"
 # harness = false
+
+[[bin]]
+name = "ex_commands_test"
+path = "tests/ex_commands_test.rs"

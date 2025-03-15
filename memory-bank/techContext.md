@@ -1,230 +1,101 @@
-# Technical Context: xvim
+# xvim Technical Context
 
-## Technologies Used
+## Architecture Overview
 
-### Core Technologies
-
-1. **Rust**
-   - Version: Latest stable (1.75+)
-   - Purpose: Primary implementation language
-   - Key features utilized:
-     - Ownership model for memory safety
-     - Trait system for interfaces
-     - Pattern matching for state management
-     - Async/await for non-blocking operations
-     - Strong type system for correctness
-
-2. **WebAssembly (WASM)**
-   - Version: Latest WASI preview
-   - Purpose: Plugin execution environment
-   - Components:
-     - WASI for system interface
-     - Component model for plugin structure
-     - Interface Types for API definition
-
-3. **Terminal UI Libraries**
-   - Crossterm/termion for cross-platform terminal manipulation
-   - Purpose: Terminal interface rendering
-   - Features:
-     - Raw mode terminal handling
-     - Color and style support
-     - Input event handling
-     - Window management
-
-### Development Tools
-
-1. **Build System**
-   - Cargo for Rust package management
-   - Custom build scripts for WASM integration
-   - Cross-compilation support for multiple platforms
-
-2. **Testing Framework**
-   - Rust's built-in testing framework
-   - Property-based testing with proptest
-   - Integration tests using Vim test suite
-   - Benchmarking suite for performance regression testing
-
-3. **Documentation**
-   - Rustdoc for API documentation
-   - mdBook for user and developer guides
-   - Automated documentation generation in CI pipeline
-
-4. **CI/CD**
-   - GitHub Actions for automated testing
-   - Release automation
-   - Cross-platform build verification
-   - Automated benchmarking
-
-## Development Setup
-
-### Required Tools
-
-1. **Rust Toolchain**
-   - rustc (compiler)
-   - cargo (package manager)
-   - rustfmt (code formatter)
-   - clippy (linter)
-
-2. **WASM Development Tools**
-   - wasm-bindgen-cli
-   - wasm-pack
-   - wit-bindgen for interface types
-
-3. **Development Environment**
-   - Any modern code editor with Rust support
-   - Recommended: VS Code with rust-analyzer extension
-   - Terminal with Unicode support
-   - Git for version control
-
-### Build Process
-
-1. **Local Development Build**
-   ```bash
-   cargo build --features development
-   ```
-
-2. **Production Build**
-   ```bash
-   cargo build --release
-   ```
-
-3. **WASM Plugin Development**
-   ```bash
-   cargo build --target wasm32-wasi
-   ```
-
-4. **Running Tests**
-   ```bash
-   cargo test
-   cargo test --features integration-tests
-   ```
-
-### Directory Structure
+xvim follows a modular architecture with clear separation of concerns:
 
 ```
-xvim/
-├── src/                  # Core Rust source code
-│   ├── buffer/           # Buffer management
-│   ├── command/          # Command parsing and execution
-│   ├── editor/           # Core editor functionality
-│   ├── mode/             # Modal editing implementation
-│   ├── plugin/           # Plugin system
-│   └── ui/               # User interface
-├── wasm/                 # WASM runtime and interfaces
-├── api/                  # Plugin API definitions
-├── tests/                # Test suite
-├── docs/                 # Documentation
-├── examples/             # Example plugins and configurations
-└── tools/                # Development tools and scripts
+xvim
+├── src/
+│   ├── buffer/       # Text buffer management
+│   ├── command/      # Ex command implementation
+│   ├── editor/       # Core editor functionality
+│   ├── input/        # Input handling
+│   ├── mode/         # Editor modes (normal, insert, visual)
+│   ├── plugin/       # WASM plugin system
+│   ├── ui/           # Terminal UI components
+│   └── main.rs       # Application entry point
+└── tests/            # Test suite
 ```
 
-## Technical Constraints
+## Key Technical Components
 
-### Performance Requirements
+### Buffer Management
 
-1. **Startup Time**
-   - Cold start under 100ms
-   - Warm start under 50ms
+- Uses the `ropey` crate for efficient text storage and manipulation
+- Implements a rope data structure for O(log n) insertions and deletions
+- Handles Unicode correctly with `unicode-segmentation`
 
-2. **Editing Performance**
-   - No perceptible lag during editing operations
-   - Support for files up to 2GB
-   - Efficient handling of very long lines (>10,000 characters)
+### Command System
 
-3. **Memory Usage**
-   - Base memory footprint under 50MB
-   - Efficient memory scaling with file size
-   - No memory leaks, even with long-running sessions
+- Implements Ex commands with a registry pattern
+- Commands are registered with handlers that can be invoked by name
+- Error handling with custom error types for clear user feedback
 
-### Compatibility Requirements
+### UI System
 
-1. **Platform Support**
-   - Linux (primary development target)
-   - macOS
-   - Windows
-   - *Stretch goal:* WebAssembly for browser-based deployment
+- Terminal-based UI using `crossterm` for terminal manipulation
+- Widget-based rendering with `ratatui` (formerly tui-rs)
+- Event-driven architecture for handling user input
 
-2. **Terminal Support**
-   - Modern terminal emulators with Unicode and true color
-   - Fallback modes for limited terminals
-   - Support for terminal resize events
+### Plugin System
 
-3. **Vim Compatibility**
-   - 100% compatibility with core Vim commands
-   - Support for .vimrc configuration
-   - Compatible with Vim's test suite
-
-### Security Constraints
-
-1. **Plugin Sandboxing**
-   - Strict capability-based security model
-   - Explicit permissions for filesystem access
-   - Network access controls
-   - Prevention of arbitrary code execution
-
-2. **Input Validation**
-   - Robust handling of malformed input
-   - Protection against command injection
-   - Secure handling of file paths
+- WebAssembly-based plugin system using `wasmtime`
+- WASI implementation with `wasi-common`
+- Interface Types binding generation with `wit-bindgen`
 
 ## Dependencies
 
 ### Core Dependencies
+- `ropey`: Rope data structure for efficient text editing
+- `unicode-segmentation`: Unicode-aware text manipulation
+- `regex`: Pattern matching and search
 
-1. **Rust Standard Library**
-   - Collections, threading, I/O primitives
+### Terminal UI
+- `crossterm`: Cross-platform terminal manipulation
+- `ratatui`: Terminal user interface widgets
 
-2. **Text Processing**
-   - ropey: Rope data structure for efficient text editing
-   - unicode-segmentation: Unicode-aware text manipulation
-   - regex: Pattern matching and search
+### WASM Runtime
+- `wasmtime`: WebAssembly runtime
+- `wasi-common`: WASI implementation
+- `wit-bindgen`: Interface Types binding generator
 
-3. **Terminal UI**
-   - crossterm: Cross-platform terminal manipulation
-   - tui-rs: Terminal user interface widgets
+### Utility Libraries
+- `anyhow`: Error handling
+- `serde` & `serde_json`: Serialization/deserialization
+- `toml`: Configuration file parsing
+- `dirs`: Finding standard directories
+- `log`: Logging infrastructure
+- `clap`: Command-line argument parsing
 
-4. **WASM Runtime**
-   - wasmtime: WebAssembly runtime
-   - wasi-common: WASI implementation
-   - wit-bindgen: Interface Types binding generator
+### Testing
+- `proptest`: Property-based testing
+- `criterion`: Benchmarking
+- `mockall`: Mocking for unit tests
+- `tempfile`: Temporary file creation for tests
 
-5. **Utility Libraries**
-   - serde: Serialization/deserialization
-   - log: Logging infrastructure
-   - clap: Command-line argument parsing
+## Development Environment
 
-### Development Dependencies
+### Build System
+- Cargo for building and package management (cargo 1.85.0)
+- Rustc compiler (rustc 1.85.0)
+- Feature flags for conditional compilation
 
-1. **Testing**
-   - proptest: Property-based testing
-   - criterion: Benchmarking
-   - mockall: Mocking for unit tests
+### Testing Strategy
+- Unit tests for individual components
+- Integration tests for command functionality
+- Property-based testing for buffer operations
+- Benchmarks for performance-critical code
 
-2. **Documentation**
-   - mdbook: Documentation generation
-   - rustdoc: API documentation
+### Code Organization
+- Clear module boundaries
+- Trait-based interfaces for flexibility
+- Error handling with custom error types
+- Documentation with rustdoc
 
-3. **Code Quality**
-   - clippy: Linting
-   - rustfmt: Code formatting
-   - cargo-audit: Dependency vulnerability checking
+## Performance Considerations
 
-## Integration Points
-
-1. **Filesystem Access**
-   - Direct file I/O for editor
-   - Controlled access for plugins
-
-2. **Process Management**
-   - Ability to spawn external processes
-   - Capture and redirect process I/O
-
-3. **Plugin Communication**
-   - Bidirectional communication between editor and plugins
-   - Event-based notification system
-   - Shared memory for efficient data transfer
-
-4. **Configuration System**
-   - .vimrc parser and interpreter
-   - JSON/TOML configuration for modern settings
-   - Runtime configuration changes
+- Text operations use rope data structure for O(log n) complexity
+- Minimal allocations in hot paths
+- Efficient rendering with terminal UI
+- Lazy loading of plugins

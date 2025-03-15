@@ -266,6 +266,48 @@ impl SelectionManager {
             false
         }
     }
+    
+    /// Set the selection type
+    pub fn set_selection_type(&mut self, selection_type: SelectionType) {
+        if let Some(selection) = &mut self.current_selection {
+            selection.selection_type = selection_type;
+        } else {
+            // Create a new selection with default position
+            self.current_selection = Some(Selection::new(selection_type, CursorPosition::new(0, 0)));
+        }
+    }
+    
+    /// Set the start position of the selection
+    pub fn set_start(&mut self, start: CursorPosition) {
+        if let Some(selection) = &mut self.current_selection {
+            selection.start = start;
+        } else {
+            // Create a new selection
+            self.current_selection = Some(Selection::new(SelectionType::Character, start));
+        }
+    }
+    
+    /// Set the end position of the selection
+    pub fn set_end(&mut self, end: CursorPosition) {
+        if let Some(selection) = &mut self.current_selection {
+            selection.end = end;
+        } else {
+            // Create a new selection
+            let selection = Selection::new(SelectionType::Character, end);
+            self.current_selection = Some(selection);
+        }
+    }
+    
+    /// Set whether the selection is active
+    pub fn set_active(&mut self, active: bool) {
+        if !active {
+            // If deactivating, clear the selection
+            self.current_selection = None;
+        } else if self.current_selection.is_none() {
+            // If activating and no selection exists, create a default one
+            self.current_selection = Some(Selection::new(SelectionType::Character, CursorPosition::new(0, 0)));
+        }
+    }
 }
 
 impl Default for SelectionManager {

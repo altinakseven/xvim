@@ -22,6 +22,8 @@ use crate::register::{RegisterManager, RegisterType, RegisterContent};
 use crate::selection::{SelectionManager, SelectionType};
 use crate::syntax::{SyntaxRegistry, Theme, create_default_registry, create_default_theme};
 use crate::ui::{TerminalUi, UiError};
+use crate::search::{SearchState, SearchDirection, SearchFunctions};
+use crate::visual::{VisualState, VisualFunctions, BufferVisualExt};
 use crossterm::event::KeyEvent;
 use std::sync::{Arc, Mutex};
 
@@ -98,6 +100,12 @@ impl From<crate::buffer::BufferError> for EditorError {
     }
 }
 
+impl From<anyhow::Error> for EditorError {
+    fn from(err: anyhow::Error) -> Self {
+        EditorError::Other(format!("{}", err))
+    }
+}
+
 /// Result type used throughout the editor
 pub type EditorResult<T> = Result<T, EditorError>;
 /// The main editor struct that coordinates all components
@@ -140,6 +148,10 @@ pub struct Editor {
     running: bool,
     /// Command buffer for storing command text
     command_buffer: String,
+    /// Search state
+    search_state: SearchState,
+    /// Visual mode state
+    visual_state: VisualState,
 }
 
 impl Editor {
@@ -233,6 +245,8 @@ impl Editor {
             view_position: 0,
             running: false,
             command_buffer: String::new(),
+            search_state: SearchState::new(),
+            visual_state: VisualState::new(),
         };
         
         // Create an initial empty buffer
@@ -257,6 +271,15 @@ impl Editor {
     fn setup_default_key_mappings(&mut self) {
         use crossterm::event::{KeyCode, KeyModifiers};
         use crate::mode::Mode;
+        
+        // Add key mapping for Ctrl-] in insert mode to execute AI chat prompt
+        let execute_prompt_mapping = KeyMapping::new(
+            Mode::Insert,
+            KeySequence::from_key(KeyEvent::new(KeyCode::Char(']'), KeyModifiers::CONTROL)),
+            KeyCommand::BuiltIn("execute_ai_prompt".to_string()),
+            false
+        );
+        self.key_handler.key_map_mut().add_mapping(execute_prompt_mapping);
         
         // Normal mode mappings
         
@@ -346,6 +369,65 @@ impl Editor {
         self.key_handler.key_map_mut().add_mapping(prev_tab_mapping);
         self.key_handler.key_map_mut().add_mapping(paste_before_mapping);
         
+        // Visual mode commands
+        
+        // Reselect previous visual area with gv
+        let reselect_visual_mapping = KeyMapping::new(
+            Mode::Normal,
+            KeySequence::new(vec![
+                KeyEvent::new(KeyCode::Char('g'), KeyModifiers::NONE),
+                KeyEvent::new(KeyCode::Char('v'), KeyModifiers::NONE),
+            ]),
+            KeyCommand::BuiltIn("reselect_visual".to_string()),
+            false
+        );
+        self.key_handler.key_map_mut().add_mapping(reselect_visual_mapping);
+        
+        // Swap visual selection corners with o in visual mode
+        let swap_corners_mapping = KeyMapping::new(
+            Mode::Visual,
+            KeySequence::from_key(KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE)),
+            KeyCommand::BuiltIn("swap_visual_corners".to_string()),
+            false
+        );
+        self.key_handler.key_map_mut().add_mapping(swap_corners_mapping);
+        
+        // Swap visual selection corners with O in visual mode
+        let swap_corners_upper_mapping = KeyMapping::new(
+            Mode::Visual,
+            KeySequence::from_key(KeyEvent::new(KeyCode::Char('O'), KeyModifiers::NONE)),
+            KeyCommand::BuiltIn("swap_visual_corners_upper".to_string()),
+            false
+        );
+        self.key_handler.key_map_mut().add_mapping(swap_corners_upper_mapping);
+        
+        // Enter character-wise visual mode with 'v'
+        let enter_visual_char_mapping = KeyMapping::new(
+            Mode::Normal,
+            KeySequence::from_key(KeyEvent::new(KeyCode::Char('v'), KeyModifiers::NONE)),
+            KeyCommand::BuiltIn("enter_visual_char_mode".to_string()),
+            false
+        );
+        self.key_handler.key_map_mut().add_mapping(enter_visual_char_mapping);
+        
+        // Enter line-wise visual mode with 'V'
+        let enter_visual_line_mapping = KeyMapping::new(
+            Mode::Normal,
+            KeySequence::from_key(KeyEvent::new(KeyCode::Char('V'), KeyModifiers::NONE)),
+            KeyCommand::BuiltIn("enter_visual_line_mode".to_string()),
+            false
+        );
+        self.key_handler.key_map_mut().add_mapping(enter_visual_line_mapping);
+        
+        // Enter block-wise visual mode with 'Ctrl-v'
+        let enter_visual_block_mapping = KeyMapping::new(
+            Mode::Normal,
+            KeySequence::from_key(KeyEvent::new(KeyCode::Char('v'), KeyModifiers::CONTROL)),
+            KeyCommand::BuiltIn("enter_visual_block_mode".to_string()),
+            false
+        );
+        self.key_handler.key_map_mut().add_mapping(enter_visual_block_mapping);
+        
         // Macro recording with q
         let start_recording_mapping = KeyMapping::new(
             Mode::Normal,
@@ -380,6 +462,15 @@ impl Editor {
             false
         );
         self.key_handler.key_map_mut().add_mapping(escape_mapping);
+        
+        // Exit visual mode with Escape
+        let escape_visual_mapping = KeyMapping::new(
+            Mode::Visual,
+            KeySequence::from_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)),
+            KeyCommand::BuiltIn("enter_normal_mode".to_string()),
+            false
+        );
+        self.key_handler.key_map_mut().add_mapping(escape_visual_mapping);
     }
     
     /// Get the current mode
@@ -596,6 +687,11 @@ impl Editor {
     fn handle_visual_operator(&mut self, operator: Operator) -> EditorResult<()> {
         use crate::mode::Mode;
         
+        // Check if visual mode is active
+        if !self.visual_state().active {
+            return Err(EditorError::Other("Not in visual mode".to_string()));
+        }
+        
         // Get the current selection
         if let Some(selection) = self.selection_manager.current_selection() {
             if let Some(buffer_id) = self.current_buffer_id() {
@@ -622,12 +718,12 @@ impl Editor {
                     let text = content[start..end].to_string();
                     
                     // Store the text in the unnamed register
-                    let register_content = match self.current_mode() {
-                        Mode::VisualLine => {
+                    let register_content = match self.visual_state().mode {
+                        crate::visual::VisualMode::Line => {
                             let lines: Vec<&str> = text.lines().collect();
                             RegisterContent::line_wise(&lines)
                         },
-                        Mode::VisualBlock => {
+                        crate::visual::VisualMode::Block => {
                             let lines: Vec<&str> = text.lines().collect();
                             RegisterContent::block_wise(&lines)
                         },
@@ -656,9 +752,8 @@ impl Editor {
                     }
                 }
                 
-                // End the selection and return to normal mode
-                self.selection_manager.end_selection();
-                self.mode_manager.enter_normal_mode();
+                // End visual mode
+                self.end_visual_mode()?;
                 
                 return Ok(());
             }
@@ -842,19 +937,19 @@ impl Editor {
                 // Handle visual mode operators
                 KeyCode::Char('v') => {
                     // Enter visual mode and remember the operator
-                    self.mode_manager.enter_visual_mode();
-                    // Start selection at current cursor position
-                    let cursor_pos = self.cursor_manager.position();
-                    self.selection_manager.start_selection(SelectionType::Character, cursor_pos);
+                    self.start_visual_mode(crate::visual::VisualMode::Char)?;
                     return Ok(());
                 },
                 
                 KeyCode::Char('V') => {
                     // Enter visual line mode and remember the operator
-                    self.mode_manager.enter_visual_line_mode();
-                    // Start selection at current cursor position
-                    let cursor_pos = self.cursor_manager.position();
-                    self.selection_manager.start_selection(SelectionType::Line, cursor_pos);
+                    self.start_visual_mode(crate::visual::VisualMode::Line)?;
+                    return Ok(());
+                },
+                
+                KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    // Enter visual block mode and remember the operator
+                    self.start_visual_mode(crate::visual::VisualMode::Block)?;
                     return Ok(());
                 },
                 
@@ -996,7 +1091,14 @@ impl Editor {
                 match cmd.as_str() {
                     "quit" => self.quit(),
                     "enter_insert_mode" => self.mode_manager.enter_insert_mode(),
-                    "enter_normal_mode" => self.mode_manager.enter_normal_mode(),
+                    "enter_normal_mode" => {
+                        // If we're in visual mode, end it properly
+                        if self.current_mode().is_visual() {
+                            self.end_visual_mode()?;
+                        } else {
+                            self.mode_manager.enter_normal_mode();
+                        }
+                    },
                     "enter_command_mode" => self.mode_manager.enter_command_mode(),
                     "undo" => { self.undo()?; },
                     "redo" => { self.redo()?; },
@@ -1034,6 +1136,40 @@ impl Editor {
                         // This would normally get a register from the user
                         // For now, just use register 'a'
                         self.play_macro('a');
+                    },
+                    "reselect_visual" => {
+                        self.reselect_visual_area()?;
+                    },
+                    "swap_visual_corners" => {
+                        self.swap_visual_corners(false)?;
+                    },
+                    "swap_visual_corners_upper" => {
+                        self.swap_visual_corners(true)?;
+                    },
+                    "enter_visual_char_mode" => {
+                        self.start_visual_mode(crate::visual::VisualMode::Char)?;
+                    },
+                    "enter_visual_line_mode" => {
+                        self.start_visual_mode(crate::visual::VisualMode::Line)?;
+                    },
+                    "enter_visual_block_mode" => {
+                        self.start_visual_mode(crate::visual::VisualMode::Block)?;
+                    },
+                    "execute_ai_prompt" => {
+                        // Check if the current buffer is an AI input buffer
+                        if let Some(buffer_id) = self.current_buffer_id() {
+                            // Get the buffer name
+                            if let Some(name) = self.get_buffer_name(buffer_id) {
+                                if name == "NoxVim-Input" {
+                                    // Execute the AI prompt
+                                    crate::plugin::ai::handle_ctrl_right_bracket(
+                                        &mut self.buffer_manager,
+                                        &mut self.plugin_manager,
+                                        buffer_id
+                                    )?;
+                                }
+                            }
+                        }
                     },
                     _ => return Err(EditorError::Other(format!("Unknown built-in command: {}", cmd))),
                 }
@@ -1154,53 +1290,82 @@ impl Editor {
                 }
             },
             
-            // Start search with '/' in normal mode
+            // Start forward search with '/' in normal mode
             (Mode::Normal, KeyCode::Char('/')) => {
-                // TODO: Show search prompt in UI
-                self.mode_manager.enter_command_mode();
+                self.start_search(SearchDirection::Forward)?;
+            },
+            
+            // Start backward search with '?' in normal mode
+            (Mode::Normal, KeyCode::Char('?')) => {
+                self.start_search(SearchDirection::Backward)?;
             },
             
             // Find next with 'n' in normal mode
             (Mode::Normal, KeyCode::Char('n')) => {
-                // TODO: Implement find next based on last search
-                // For now, just a placeholder
+                self.find_next_occurrence()?;
             },
             
             // Find previous with 'N' in normal mode
             (Mode::Normal, KeyCode::Char('N')) => {
-                // TODO: Implement find previous based on last search
-                // For now, just a placeholder
+                self.find_prev_occurrence()?;
             },
             
             // Enter visual mode in normal mode
             (Mode::Normal, KeyCode::Char('v')) => {
-                self.mode_manager.enter_visual_mode();
-                // Start selection at current cursor position
-                let cursor_pos = self.cursor_manager.position();
-                self.selection_manager.start_selection(SelectionType::Character, cursor_pos);
+                self.start_visual_mode(crate::visual::VisualMode::Char)?;
             },
             
             // Enter visual line mode in normal mode
             (Mode::Normal, KeyCode::Char('V')) => {
-                self.mode_manager.enter_visual_line_mode();
-                // Start selection at current cursor position
-                let cursor_pos = self.cursor_manager.position();
-                self.selection_manager.start_selection(SelectionType::Line, cursor_pos);
+                self.start_visual_mode(crate::visual::VisualMode::Line)?;
             },
             
             // Enter visual block mode in normal mode
             (Mode::Normal, KeyCode::Char('b')) if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.mode_manager.enter_visual_block_mode();
-                // Start selection at current cursor position
-                let cursor_pos = self.cursor_manager.position();
-                self.selection_manager.start_selection(SelectionType::Block, cursor_pos);
+                self.start_visual_mode(crate::visual::VisualMode::Block)?;
             },
             
             // Exit visual mode with Escape
             (mode, KeyCode::Esc) if mode.is_visual() => {
-                // End selection
-                self.selection_manager.end_selection();
-                self.mode_manager.enter_normal_mode();
+                // End visual mode
+                self.end_visual_mode()?;
+            },
+            
+            // Reselect previous visual area with 'gv' in normal mode
+            (Mode::Normal, KeyCode::Char('g')) => {
+                // Check if the next key is 'v'
+                if let Some(next_key) = self.terminal.poll_key(1000)? {
+                    if next_key.code == KeyCode::Char('v') {
+                        // Reselect previous visual area
+                        return self.reselect_visual_area();
+                    } else {
+                        // Not 'v', so handle as 'g' followed by another key
+                        if let Some(buffer_id) = self.current_buffer_id() {
+                            let buffer = self.buffer_manager.get_buffer(buffer_id)?;
+                            self.cursor_manager.move_cursor(Direction::BufferStart, buffer)?;
+                        }
+                        // Process the next key
+                        return self.process_key_legacy(next_key);
+                    }
+                } else {
+                    // No next key, just handle as 'g'
+                    if let Some(buffer_id) = self.current_buffer_id() {
+                        let buffer = self.buffer_manager.get_buffer(buffer_id)?;
+                        self.cursor_manager.move_cursor(Direction::BufferStart, buffer)?;
+                    }
+                }
+            },
+            
+            // Swap visual corners with 'o' in visual mode
+            (mode, KeyCode::Char('o')) if mode.is_visual() => {
+                // Swap start and end of visual selection
+                self.swap_visual_corners(false)?;
+            },
+            
+            // Swap visual corners with 'O' in visual mode
+            (mode, KeyCode::Char('O')) if mode.is_visual() => {
+                // Swap start and end of visual selection (with upper flag)
+                self.swap_visual_corners(true)?;
             },
             
             // Update selection when moving in visual mode
@@ -1582,7 +1747,25 @@ impl Editor {
     
     /// Process a command
     pub fn process_command(&mut self, command_str: &str) -> EditorResult<()> {
-        // Parse the command using the command parser
+        // Check if it's a search command
+        if command_str.starts_with('/') {
+            // Forward search
+            let pattern = &command_str[1..];
+            return match self.execute_search(pattern) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(err),
+            };
+        } else if command_str.starts_with('?') {
+            // Backward search
+            let pattern = &command_str[1..];
+            self.search_state_mut().set_direction(SearchDirection::Backward);
+            return match self.execute_search(pattern) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(err),
+            };
+        }
+        
+        // Not a search command, parse as an Ex command
         match self.command_parser.parse_ex(command_str) {
             Ok(ex_cmd) => {
                 // Execute the command using the ex command registry
@@ -2012,26 +2195,39 @@ impl Editor {
             eprintln!("noxvim plugin not found at {}", plugin_path.display());
         }
     }
-    
     /// Register commands for the noxvim plugin
     fn register_noxvim_commands(&mut self) {
-        // Register the plugin commands using the plugin commands module
-        let plugin_manager = Arc::new(Mutex::new(PluginManager::new()));
+        // Create a new plugin manager instance
+        let mut new_plugin_manager = PluginManager::new();
         
-        // Copy the necessary configuration from the existing plugin manager
-        if let Ok(mut pm) = plugin_manager.lock() {
-            pm.set_plugin_dir(self.plugin_manager.plugin_dir());
-            
-            // Load the noxvim plugin
-            let plugin_path = std::path::Path::new("plugins/noxvim.wasm");
-            if plugin_path.exists() {
-                if let Err(err) = pm.load_plugin(plugin_path, "noxvim") {
-                    eprintln!("Failed to load noxvim plugin in command handler: {}", err);
-                }
-            }
+        // Initialize the plugin system
+        if let Err(err) = new_plugin_manager.init() {
+            eprintln!("Warning: Failed to initialize plugin system: {}", err);
         }
         
-        crate::plugin::commands::register_plugin_commands(&mut self.ex_command_registry, plugin_manager);
+        // Set up the plugin context with the buffer manager
+        if let Ok(mut context) = new_plugin_manager.context().lock() {
+            // Set the buffer manager in the context
+            let buffer_manager = Arc::new(Mutex::new(self.buffer_manager.clone()));
+            context.set_buffer_manager(buffer_manager);
+            
+            // Set the mode manager in the context
+            let mode_manager = Arc::new(Mutex::new(self.mode_manager.clone()));
+            context.set_mode_manager(mode_manager);
+            
+            // Set the command registry in the context
+            let command_registry = Arc::new(Mutex::new(self.ex_command_registry.clone()));
+            context.set_command_registry(command_registry);
+        }
+        
+        // Set the terminal UI reference for the plugin manager
+        new_plugin_manager.set_terminal_ui(Arc::new(Mutex::new(self.terminal.clone())));
+        
+        // Create an Arc<Mutex<>> wrapper around the new plugin manager
+        let plugin_manager_arc = Arc::new(Mutex::new(new_plugin_manager));
+        
+        // Register the plugin commands
+        crate::plugin::commands::register_plugin_commands(&mut self.ex_command_registry, plugin_manager_arc);
     }
     
     /// Get the content of a register
@@ -2630,5 +2826,415 @@ mod tests {
     fn test_editor_creation() {
         let editor = Editor::new();
         assert!(editor.is_ok());
+    }
+}
+
+// Implement SearchFunctions for Editor
+impl SearchFunctions for Editor {
+    fn start_search(&mut self, direction: SearchDirection) -> EditorResult<()> {
+        // Set the search direction
+        self.search_state.set_direction(direction);
+        
+        // Enter command mode
+        self.mode_manager.enter_command_mode();
+        
+        // Set the command buffer to the search prefix
+        self.command_buffer = match direction {
+            SearchDirection::Forward => "/".to_string(),
+            SearchDirection::Backward => "?".to_string(),
+        };
+        
+        Ok(())
+    }
+    
+    fn execute_search(&mut self, pattern: &str) -> EditorResult<bool> {
+        if pattern.is_empty() {
+            // If the pattern is empty, use the last pattern if available
+            if let Some(last_pattern) = self.search_state.pattern() {
+                // Clone the pattern to avoid borrow issues
+                let pattern_clone = last_pattern.to_string();
+                return self.execute_search(&pattern_clone);
+            } else {
+                return Ok(false);
+            }
+        }
+        
+        // Set the search pattern
+        self.search_state.set_pattern(pattern.to_string());
+        
+        // Get the search direction
+        let direction = self.search_state.direction();
+        
+        // Get the case sensitivity
+        let case_sensitive = self.search_state.case_sensitive();
+        
+        // Get the current buffer
+        if let Some(buffer_id) = self.current_buffer_id() {
+            let buffer = self.buffer_manager.get_buffer(buffer_id)?;
+            
+            // Perform the search
+            let results = buffer.search(pattern, case_sensitive)?;
+            
+            // Store the results
+            self.search_state.set_results(results);
+            
+            // Find the appropriate result based on direction
+            let result = match direction {
+                SearchDirection::Forward => self.find_next_occurrence()?,
+                SearchDirection::Backward => self.find_prev_occurrence()?,
+            };
+            
+            return Ok(result);
+        }
+        
+        Ok(false)
+    }
+    
+    fn find_next_occurrence(&mut self) -> EditorResult<bool> {
+        if let Some(pattern) = self.search_state.pattern() {
+            // Get the current buffer
+            if let Some(buffer_id) = self.current_buffer_id() {
+                let buffer = self.buffer_manager.get_buffer(buffer_id)?;
+                
+                // Get the current cursor position
+                let cursor_pos = self.cursor_position();
+                
+                // Find the next occurrence
+                if let Some((line, column, _)) = self.search_state.next_result() {
+                    // Move the cursor to the match position
+                    let new_pos = CursorPosition::new(line, column);
+                    self.cursor_manager.set_position(new_pos);
+                    return Ok(true);
+                } else if !self.search_state.results().is_empty() {
+                    // If we have results but couldn't get the next one, try the first one
+                    let (line, column, _) = self.search_state.results()[0];
+                    let new_pos = CursorPosition::new(line, column);
+                    self.cursor_manager.set_position(new_pos);
+                    self.search_state.set_current_result_index(Some(0));
+                    return Ok(true);
+                }
+            }
+        }
+        
+        Ok(false)
+    }
+    
+    fn find_prev_occurrence(&mut self) -> EditorResult<bool> {
+        if let Some(pattern) = self.search_state.pattern() {
+            // Get the current buffer
+            if let Some(buffer_id) = self.current_buffer_id() {
+                let buffer = self.buffer_manager.get_buffer(buffer_id)?;
+                
+                // Get the current cursor position
+                let cursor_pos = self.cursor_position();
+                
+                // Find the previous occurrence
+                if let Some((line, column, _)) = self.search_state.prev_result() {
+                    // Move the cursor to the match position
+                    let new_pos = CursorPosition::new(line, column);
+                    self.cursor_manager.set_position(new_pos);
+                    return Ok(true);
+                } else if !self.search_state.results().is_empty() {
+                    // If we have results but couldn't get the previous one, try the last one
+                    let last_index = self.search_state.results().len() - 1;
+                    let (line, column, _) = self.search_state.results()[last_index];
+                    let new_pos = CursorPosition::new(line, column);
+                    self.cursor_manager.set_position(new_pos);
+                    self.search_state.set_current_result_index(Some(last_index));
+                    return Ok(true);
+                }
+            }
+        }
+        
+        Ok(false)
+    }
+    
+    fn search_state(&self) -> &SearchState {
+        &self.search_state
+    }
+    
+    fn search_state_mut(&mut self) -> &mut SearchState {
+        &mut self.search_state
+    }
+}
+
+impl VisualFunctions for Editor {
+    fn start_visual_mode(&mut self, mode: crate::visual::VisualMode) -> EditorResult<()> {
+        let cursor = self.cursor_position();
+        
+        // Set visual mode
+        self.visual_state_mut().start(mode, cursor);
+        
+        // Update selection manager
+        self.selection_manager.set_selection_type(mode.to_selection_type());
+        self.selection_manager.set_start(cursor);
+        self.selection_manager.set_end(cursor);
+        self.selection_manager.set_active(true);
+        
+        // Enter visual mode
+        match mode {
+            crate::visual::VisualMode::Char => self.mode_manager.enter_visual_mode(),
+            crate::visual::VisualMode::Line => self.mode_manager.enter_visual_line_mode(),
+            crate::visual::VisualMode::Block => self.mode_manager.enter_visual_block_mode(),
+        }
+        
+        Ok(())
+    }
+    
+    fn end_visual_mode(&mut self) -> EditorResult<()> {
+        // Save the current visual area for 'gv' command
+        if let Some(buffer_id) = self.current_buffer_id() {
+            let visual_area = self.visual_state().save_visual_area(buffer_id, self.cursor_position());
+            if let Ok(buffer) = self.buffer_manager.get_buffer_mut(buffer_id) {
+                buffer.set_visual_area(visual_area);
+            }
+        }
+        
+        // End visual mode
+        self.visual_state_mut().end();
+        
+        // Update selection manager
+        self.selection_manager.set_active(false);
+        
+        // Enter normal mode
+        self.mode_manager.enter_normal_mode();
+        
+        Ok(())
+    }
+    
+    fn toggle_visual_mode(&mut self, mode: crate::visual::VisualMode) -> EditorResult<()> {
+        if self.visual_state().active && self.visual_state().mode == mode {
+            self.end_visual_mode()
+        } else if self.visual_state().active {
+            // Change visual mode
+            self.visual_state_mut().mode = mode;
+            self.selection_manager.set_selection_type(mode.to_selection_type());
+            
+            // Update mode manager
+            match mode {
+                crate::visual::VisualMode::Char => self.mode_manager.enter_visual_mode(),
+                crate::visual::VisualMode::Line => self.mode_manager.enter_visual_line_mode(),
+                crate::visual::VisualMode::Block => self.mode_manager.enter_visual_block_mode(),
+            }
+            
+            Ok(())
+        } else {
+            self.start_visual_mode(mode)
+        }
+    }
+    
+    fn reselect_visual_area(&mut self) -> EditorResult<()> {
+        if let Some(buffer_id) = self.current_buffer_id() {
+            let buffer = self.buffer_manager.get_buffer(buffer_id)?;
+            if let Some(visual_area) = buffer.visual_area() {
+                // Clone the visual area data to avoid borrowing issues
+                let mode = visual_area.mode;
+                let start = visual_area.start;
+                let end = visual_area.end;
+                
+                // Restore visual mode
+                self.visual_state_mut().mode = mode;
+                self.visual_state_mut().start = start;
+                self.visual_state_mut().active = true;
+                
+                // Update selection manager
+                self.selection_manager.set_selection_type(mode.to_selection_type());
+                self.selection_manager.set_start(start);
+                self.selection_manager.set_end(end);
+                self.selection_manager.set_active(true);
+                
+                // Move cursor to end position
+                self.cursor_manager.set_position(end);
+                
+                // Enter visual mode
+                match mode {
+                    crate::visual::VisualMode::Char => self.mode_manager.enter_visual_mode(),
+                    crate::visual::VisualMode::Line => self.mode_manager.enter_visual_line_mode(),
+                    crate::visual::VisualMode::Block => self.mode_manager.enter_visual_block_mode(),
+                }
+                
+                return Ok(());
+            }
+        }
+        
+        Err(EditorError::Other("No previous visual selection".to_string()))
+    }
+    
+    fn swap_visual_corners(&mut self, upper: bool) -> EditorResult<()> {
+        if !self.visual_state().active {
+            return Err(EditorError::Other("Not in visual mode".to_string()));
+        }
+        
+        let old_cursor = self.cursor_position();
+        let visual_start = self.visual_state().start;
+        
+        // For 'O' in block mode, swap left and right corners
+        if upper && self.visual_state().mode == crate::visual::VisualMode::Block {
+            // TODO: Implement block mode corner swapping
+            // This requires calculating virtual columns
+            return Ok(());
+        }
+        
+        // For 'o' or 'O' in other modes, swap start and end
+        self.cursor_manager.set_position(visual_start);
+        self.visual_state_mut().start = old_cursor;
+        
+        // Update selection
+        self.selection_manager.set_start(self.visual_state().start);
+        self.selection_manager.set_end(old_cursor);
+        
+        Ok(())
+    }
+    
+    fn visual_state(&self) -> &VisualState {
+        &self.visual_state
+    }
+    
+    fn visual_state_mut(&mut self) -> &mut VisualState {
+        &mut self.visual_state
+    }
+}
+
+// Define the structs needed for the command handlers
+pub struct WindowInfo {
+    pub id: usize,
+    pub buffer_id: usize,
+    pub width: usize,
+    pub height: usize,
+    pub position: CursorPosition,
+}
+
+pub struct TabInfo {
+    pub id: usize,
+}
+
+pub struct BufferInfo {
+    pub id: usize,
+    pub name: Option<String>,
+    pub modified: bool,
+}
+
+pub struct JumpInfo {
+    pub buffer_id: usize,
+    pub position: CursorPosition,
+}
+
+pub struct MarkPosition {
+    pub buffer_id: usize,
+    pub line: usize,
+    pub column: usize,
+}
+
+// Add the missing methods needed by the command handlers
+impl Editor {
+    /// Get the name of a tab
+    pub fn get_tab_name(&self, tab_id: usize) -> Option<String> {
+        // For now, just return a placeholder name
+        // In a real implementation, this would get the name from the tab
+        Some(format!("Tab {}", tab_id))
+    }
+
+    /// Get the windows in a tab
+    pub fn get_windows_in_tab(&self, tab_id: usize) -> Vec<WindowInfo> {
+        // For now, just return an empty vector
+        // In a real implementation, this would get the windows from the tab
+        Vec::new()
+    }
+
+    /// Get the name of a buffer
+    pub fn get_buffer_name(&self, buffer_id: usize) -> Option<String> {
+        // Try to get the buffer from the buffer manager
+        if let Ok(buffer) = self.buffer_manager.get_buffer(buffer_id) {
+            // If the buffer has a file path, use that as the name
+            if let Some(path) = buffer.file_path() {
+                if let Some(file_name) = path.file_name() {
+                    return Some(file_name.to_string_lossy().to_string());
+                }
+            }
+        }
+        
+        // If we couldn't get a name, return a default
+        Some(format!("Buffer {}", buffer_id))
+    }
+
+    /// Get the current window ID
+    pub fn get_current_window_id(&self) -> Option<usize> {
+        // For now, just return None
+        // In a real implementation, this would get the current window ID
+        None
+    }
+
+    /// Get the current tab ID
+    pub fn get_current_tab_id(&self) -> Option<usize> {
+        // For now, just return None
+        // In a real implementation, this would get the current tab ID
+        None
+    }
+
+    /// Get the list of tabs
+    pub fn get_tab_list(&self) -> Vec<TabInfo> {
+        // For now, just return an empty vector
+        // In a real implementation, this would get the list of tabs
+        Vec::new()
+    }
+
+    /// Get the list of windows
+    pub fn get_window_list(&self) -> Vec<WindowInfo> {
+        // For now, just return an empty vector
+        // In a real implementation, this would get the list of windows
+        Vec::new()
+    }
+
+    /// Get the list of buffers
+    pub fn get_buffer_list(&self) -> Vec<BufferInfo> {
+        // For now, just return an empty vector
+        // In a real implementation, this would get the list of buffers
+        Vec::new()
+    }
+
+    /// Get the jump list
+    pub fn get_jump_list(&self) -> Vec<JumpInfo> {
+        // For now, just return an empty vector
+        // In a real implementation, this would get the jump list
+        Vec::new()
+    }
+
+    /// Get the current jump index
+    pub fn get_current_jump_index(&self) -> Option<usize> {
+        // For now, just return None
+        // In a real implementation, this would get the current jump index
+        None
+    }
+
+    /// Get the content of a register
+    pub fn get_register_content(&self, register: char) -> Option<String> {
+        // Try to get the register content
+        if let Some(content) = self.register_manager.get_register_by_char(register) {
+            return Some(content.as_string());
+        }
+        
+        // If we couldn't get the content, return None
+        None
+    }
+
+    /// Get the position of a mark
+    pub fn get_mark_position(&self, mark: char) -> Option<MarkPosition> {
+        // For now, just return None
+        // In a real implementation, this would get the position of the mark
+        None
+    }
+
+    /// Copy a line from one position to another
+    pub fn copy_line(&mut self, buffer_id: usize, source_line: usize, dest_line: usize) -> EditorResult<()> {
+        // For now, just return Ok
+        // In a real implementation, this would copy the line
+        Ok(())
+    }
+
+    /// Move a line from one position to another
+    pub fn move_line(&mut self, buffer_id: usize, source_line: usize, dest_line: usize) -> EditorResult<()> {
+        // For now, just return Ok
+        // In a real implementation, this would move the line
+        Ok(())
     }
 }

@@ -21,6 +21,8 @@ pub struct PluginContext {
     mode_manager: Option<Arc<Mutex<ModeManager>>>,
     /// Command registry reference
     command_registry: Option<Arc<Mutex<ExCommandRegistry>>>,
+    /// Terminal UI reference
+    terminal_ui: Option<Arc<Mutex<crate::ui::TerminalUi>>>,
     /// Custom data storage for plugins
     custom_data: HashMap<String, Vec<u8>>,
 }
@@ -32,6 +34,7 @@ impl PluginContext {
             buffer_manager: None,
             mode_manager: None,
             command_registry: None,
+            terminal_ui: None,
             custom_data: HashMap::new(),
         }
     }
@@ -51,6 +54,11 @@ impl PluginContext {
         self.command_registry = Some(command_registry);
     }
     
+    /// Set the terminal UI reference
+    pub fn set_terminal_ui(&mut self, terminal_ui: Arc<Mutex<crate::ui::TerminalUi>>) {
+        self.terminal_ui = Some(terminal_ui);
+    }
+    
     /// Get the buffer manager reference
     pub fn buffer_manager(&self) -> Option<Arc<Mutex<BufferManager>>> {
         self.buffer_manager.clone()
@@ -64,6 +72,11 @@ impl PluginContext {
     /// Get the command registry reference
     pub fn command_registry(&self) -> Option<Arc<Mutex<ExCommandRegistry>>> {
         self.command_registry.clone()
+    }
+    
+    /// Get the terminal UI reference
+    pub fn terminal_ui(&self) -> Option<Arc<Mutex<crate::ui::TerminalUi>>> {
+        self.terminal_ui.clone()
     }
     
     /// Set custom data

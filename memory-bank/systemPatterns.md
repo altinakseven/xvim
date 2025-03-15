@@ -1,234 +1,362 @@
-# System Patterns: xvim
+# xvim System Patterns
 
-## System Architecture
+This document outlines the key design patterns and architectural decisions used in the xvim project.
 
-xvim follows a modular architecture with clear separation of concerns, organized around these core principles:
+## Core Design Patterns
 
-### Layered Architecture
+### Command Pattern
 
-1. **Core Layer**: Fundamental data structures and algorithms
-   - Text buffer representation
-   - Document model
-   - Memory management primitives
+The Ex command system uses the Command pattern to encapsulate commands as objects:
 
-2. **Engine Layer**: Core editor functionality
-   - Modal editing state machine
-   - Command interpreter
-   - Text manipulation operations
-   - Motion and text object implementation
-   - Selection and visual mode system
+```rust
+// Command registration
+registry.register("write", make_handler(handle_write));
+registry.register("w", make_handler(handle_write));
 
-3. **UI Layer**: Interface components
-   - Terminal UI rendering
-   - Window management
-   - Status line and command line interface
-   - Syntax highlighting
+// Command execution
+fn handle_write(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Implementation
+}
+```
 
-4. **Extension Layer**: Plugin system
-   - WASM runtime environment
-   - Plugin API interfaces
-   - Event dispatch system
-   - Plugin lifecycle management
-   - Advanced UI manipulation capabilities
-   - Network access control system
-   - Asynchronous operation support
+Benefits:
+- Decouples command invocation from implementation
+- Allows for command aliasing (e.g., `:w` and `:write`)
+- Centralizes error handling
 
-### Component Isolation
+### Registry Pattern
 
-Each major component is designed with clear boundaries and interfaces to ensure:
-- Testability of individual components
-- Ability to refactor internals without affecting other components
-- Potential for alternative implementations of specific components
+Commands, modes, and plugins are managed through registries:
 
-## Key Technical Decisions
+```rust
+pub struct ExCommandRegistry {
+    commands: HashMap<String, Box<dyn Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync>>,
+}
 
-1. **Rust as Implementation Language**
-   - Memory safety without garbage collection
-   - Strong type system for correctness guarantees
-   - Pattern matching for complex state handling
-   - Zero-cost abstractions for performance
-   - Excellent FFI capabilities for system integration
+impl ExCommandRegistry {
+    pub fn register(&mut self, name: &str, handler: impl Fn(&ExCommand) -> ExCommandResult<()> + Send + Sync + 'static) {
+        self.commands.insert(name.to_string(), Box::new(handler));
+    }
+    
+    pub fn execute(&self, cmd: &ExCommand) -> ExCommandResult<()> {
+        // Implementation
+    }
+}
+```
 
-2. **WASM for Plugin System**
-   - Language-agnostic plugin development
-   - Sandboxed execution environment
-   - Near-native performance
-   - Standardized binary format
-   - Growing ecosystem of tools and languages
+Benefits:
+- Centralized management of components
+- Dynamic registration and lookup
+- Extensibility through plugins
 
-3. **Event-Driven Architecture**
-   - Reactive programming model for UI and plugins
-   - Clear flow of information through the system
-   - Decoupling of components via event bus
-   - Support for asynchronous operations
+### Observer Pattern
 
-4. **Configuration as Code**
-   - .vimrc compatibility through interpreter
-   - Strongly typed configuration options
-   - Schema-based validation
-   - Default values with clear override mechanisms
+The editor uses the Observer pattern for event handling:
 
-## Design Patterns in Use
+```rust
+// Event subscription
+editor.subscribe(EventType::BufferChanged, handler);
 
-1. **Command Pattern**
-   - Encapsulates editor operations as command objects
-   - Enables undo/redo functionality
-   - Supports macro recording and playback
-   - Allows for command composition
+// Event notification
+editor.notify(Event::BufferChanged { buffer_id });
+```
 
-2. **Observer Pattern**
-   - Event notification system for UI updates
-   - Plugin hooks for editor events
-   - Buffer change notifications
+Benefits:
+- Decouples components
+- Allows for plugin integration
+- Supports reactive UI updates
 
-3. **Strategy Pattern**
-   - Pluggable algorithms for text manipulation
-   - Configurable behavior for editor operations
-   - Customizable key mapping strategies
+### Strategy Pattern
 
-4. **Facade Pattern**
-   - Simplified API surface for plugin developers
-   - Abstraction of complex subsystems
-   - Consistent interface across different editor components
+Different editor modes implement the same interface but with different behaviors:
 
-5. **Factory Pattern**
-   - Creation of buffer objects
-   - Plugin instantiation
-   - UI component generation
+```rust
+trait Mode {
+    fn handle_input(&mut self, input: Input, editor: &mut Editor) -> ModeResult;
+    fn render(&self, editor: &Editor, frame: &mut Frame);
+}
 
-6. **Decorator Pattern**
-   - Layered buffer modifications
-   - Syntax highlighting
-   - Text annotations and decorations
+struct NormalMode { /* ... */ }
+struct InsertMode { /* ... */ }
+struct VisualMode { /* ... */ }
 
-## Component Relationships
+impl Mode for NormalMode {
+    // Implementation
+}
+```
 
-### Buffer Management System
-- **Responsibility**: Manages text content and modifications
-- **Relationships**:
-  - Provides content to UI layer for rendering
-  - Receives modification commands from the command interpreter
-  - Notifies observers of changes
-  - Exposes API for plugin access
+Benefits:
+- Encapsulates mode-specific behavior
+- Allows for easy mode switching
+- Maintains consistent interface
 
-### Modal Editing Engine
-- **Responsibility**: Manages editor state and mode transitions
-- **Relationships**:
-  - Interprets key inputs based on current mode
-  - Dispatches commands to buffer system
-  - Updates UI based on mode changes
-  - Provides context for command execution
-  - Coordinates with selection system in visual modes
-  - Manages transitions between normal, insert, and visual modes
+### Trait-based Extension Pattern
 
-### WASM Plugin Runtime
-- **Responsibility**: Loads and executes WASM plugins
-- **Relationships**:
-  - Provides sandboxed environment for plugins
-  - Exposes editor API to plugins
-  - Manages plugin lifecycle
-  - Enforces security boundaries
-  - Facilitates network communication for AI services
-  - Enables advanced UI manipulation for rich interfaces
-  - Manages asynchronous operations and progress reporting
+The editor uses traits to extend functionality across components:
 
-### Event System
-- **Responsibility**: Facilitates communication between components
-- **Relationships**:
-  - Connects plugins to editor events
-  - Enables UI updates based on state changes
-  - Supports asynchronous operations
-  - Provides extension points for custom events
+```rust
+// Visual mode functionality for the Editor
+trait VisualFunctions {
+    fn start_visual_mode(&mut self, mode: VisualMode) -> EditorResult<()>;
+    fn end_visual_mode(&mut self) -> EditorResult<()>;
+    fn toggle_visual_mode(&mut self, mode: VisualMode) -> EditorResult<()>;
+    fn reselect_visual_area(&mut self) -> EditorResult<()>;
+    fn swap_visual_corners(&mut self, upper: bool) -> EditorResult<()>;
+    fn visual_state(&self) -> &VisualState;
+    fn visual_state_mut(&mut self) -> &mut VisualState;
+}
 
-### Configuration System
-- **Responsibility**: Manages user preferences and settings
-- **Relationships**:
-  - Reads from .vimrc and other config files
-  - Provides settings to all subsystems
-  - Notifies components of setting changes
-  - Validates and normalizes user input
+impl VisualFunctions for Editor {
+    // Implementation
+}
+```
 
-### Text Editing Components
+Benefits:
+- Organizes related functionality into cohesive units
+- Allows for modular implementation of features
+- Improves code organization and maintainability
+- Enables clear separation of concerns
 
-#### Buffer Management
-- **BufferManager**: Central coordinator for all buffers
-- **Buffer**: Represents a single text document
-  - Uses Rope data structure for efficient text manipulation
-  - Tracks file path, modification status, and other metadata
-- **ChangeHistory**: Tracks changes for undo/redo functionality
-  - Uses Command pattern for change operations
-  - Groups related changes for atomic undo/redo
+### Composite Pattern
 
-#### Cursor Management
-- **CursorManager**: Handles cursor positioning and movement
-- **CursorPosition**: Represents a position in the buffer
-- Supports various movement operations (character, word, line)
-- Maintains preferred column for vertical movement
+The UI system uses the Composite pattern for widget hierarchy:
 
-#### Selection System
-- **Selection**: Represents a text selection with start and end positions
-- **SelectionType**: Defines selection modes (Character, Line, Block)
-- **SelectionManager**: Coordinates selection operations
-- Integrated with visual mode and cursor movement
-- Supports operations on selected text (yank, delete, change)
-- Handles normalization of selection boundaries
+```rust
+trait Widget {
+    fn render(&self, frame: &mut Frame, area: Rect);
+}
 
-#### Mark System
-- **Mark**: Named position in a buffer
-- **MarkMap**: Collection of marks for a buffer
-- Supports global and buffer-local marks
-- Integrated with jump list for navigation
+struct Container {
+    children: Vec<Box<dyn Widget>>,
+}
 
-## Data Flow Patterns
+impl Widget for Container {
+    fn render(&self, frame: &mut Frame, area: Rect) {
+        // Render children
+    }
+}
+```
 
-1. **Input Processing Flow**
-   - Key input → Mode interpreter → Command generation → Buffer modification → Selection update → UI update
+Benefits:
+- Hierarchical UI composition
+- Consistent rendering interface
+- Flexible layout management
 
-2. **Plugin Execution Flow**
-   - Editor event → Event dispatch → Plugin notification → Plugin execution → API calls → Editor state change
+## Architectural Patterns
 
-3. **Configuration Flow**
-   - Config file parsing → Setting validation → Setting application → Component notification → Behavior adaptation
+### Model-View-Controller (MVC)
 
-4. **Buffer Modification Flow**
-   - Command execution → Change recording → Buffer modification → Change notification → UI update → Plugin notification
+The editor follows an MVC architecture:
 
-5. **Visual Mode Selection Flow**
-   - Mode activation → Selection start → Cursor movement → Selection update → Operation execution → Mode exit
+- **Model**: Buffer and document management
+- **View**: Terminal UI rendering
+- **Controller**: Input handling and command execution
 
-6. **AI Plugin Interaction Flow**
-   - User input → Context gathering → API request formation → Asynchronous service call → Progress updates → Response processing → UI rendering
+### Plugin Architecture
 
-## Advanced Plugin Architectures
+The WASM plugin system follows a host-guest architecture:
 
-### PyroVim AI Agent Plugin
+- **Host**: The xvim editor core
+- **Guest**: WASM plugins with defined interfaces
+- **Bridge**: WIT (WebAssembly Interface Types) definitions
 
-PyroVim represents an advanced use case for the WASM plugin system, requiring sophisticated capabilities:
+The plugin system is designed with these key components:
 
-1. **Split-Pane Interface**
-   - Custom window management for input/output panes
-   - Specialized buffer types with different behaviors
-   - Real-time updating of output content
-   - Custom keybindings within specific buffers
+1. **Plugin Manager**: Central coordinator for plugin operations
+   ```rust
+   pub struct PluginManager {
+       runtime: WasmRuntime,
+       event_manager: EventManager,
+       ui_manager: Option<UiManager>,
+       network_manager: NetworkManager,
+       task_manager: TaskManager,
+       dependency_manager: DependencyManager,
+       debug_manager: DebugManager,
+       context: Arc<Mutex<PluginContext>>,
+       plugins: HashMap<String, PluginInfo>,
+       plugin_dir: PathBuf,
+   }
+   ```
 
-2. **AI Service Integration**
-   - Secure network access to external AI services
-   - Streaming response handling
-   - Progress indication for long-running operations
-   - Error handling and retry mechanisms
+2. **Plugin Context**: Shared state between the editor and plugins
+   ```rust
+   pub struct PluginContext {
+       buffer_manager: Option<Arc<Mutex<BufferManager>>>,
+       mode_manager: Option<Arc<Mutex<ModeManager>>>,
+       command_registry: Option<Arc<Mutex<ExCommandRegistry>>>,
+       terminal_ui: Option<Arc<Mutex<TerminalUi>>>,
+       custom_data: HashMap<String, Vec<u8>>,
+   }
+   ```
 
-3. **Context Awareness**
-   - Project structure analysis
-   - Buffer content access
-   - Cursor position tracking
-   - Visual mode selection tracking
-   - Integration with editor state and mode
+3. **WASM Runtime**: Executes plugin code in a sandboxed environment
+   ```rust
+   pub struct WasmRuntime {
+       plugins: HashMap<String, WasmPlugin>,
+       context: Arc<Mutex<PluginContext>>,
+   }
+   ```
 
-4. **Component Structure**
-   - Core plugin module for initialization and lifecycle
-   - UI manager for window and buffer handling
-   - AI service client for backend communication
-   - Context provider for editor state access
-   - Command executor for processing user inputs
+4. **Event System**: Allows plugins to react to editor events
+   ```rust
+   pub enum EventType {
+       BufferCreated(usize),
+       BufferDeleted(usize),
+       BufferChanged(usize),
+       ModeChanged(Mode),
+       CursorMoved(usize, usize, usize),
+       CommandExecuted(String),
+       Custom(String, Vec<u8>),
+   }
+   ```
 
-This architecture demonstrates how the xvim plugin system can support sophisticated applications beyond traditional editor plugins, enabling new workflows that combine the efficiency of modal editing with the power of AI assistance.
+### Lock Management Pattern
+
+The plugin system uses a careful lock acquisition pattern to prevent deadlocks:
+
+1. **Lock Ordering**: Acquire locks in a consistent order
+   - Plugin Manager → Plugin Context → Buffer Manager → Terminal UI
+   
+2. **Early Lock Release**: Release locks as soon as possible
+   ```rust
+   // Get the context
+   let context_arc = plugin_manager.context();
+   
+   // Lock the context
+   let context_result = context_arc.lock();
+   if context_result.is_err() {
+       return Err(anyhow!("Failed to lock plugin context"));
+   }
+   
+   // Use the context
+   let context = context_result.unwrap();
+   let terminal_ui_option = context.terminal_ui();
+   
+   // Release the context lock before proceeding
+   drop(context);
+   
+   // Now use the terminal UI
+   if let Some(terminal_ui) = terminal_ui_option {
+       // Lock and use the terminal UI
+   }
+   ```
+
+3. **Minimal Lock Scope**: Keep critical sections as small as possible
+
+This approach helps prevent deadlocks that can occur when multiple threads try to acquire locks in different orders.
+
+### Known Issues with the Plugin System
+
+The plugin system currently has several issues that need to be addressed:
+
+1. **Deadlocks in UI Operations**: The NoxChat command can cause deadlocks when trying to split windows. This is because the terminal UI operations may require locks that are already held by other components.
+
+2. **Circular Dependencies**: There are potential circular dependencies in the lock acquisition pattern, particularly between the plugin manager, plugin context, and terminal UI.
+
+3. **Conversation Management**: The AI conversation functionality is implemented but not fully integrated with the editor. The current implementation creates buffers but doesn't properly handle the window layout.
+
+4. **Compilation Errors**: There are persistent compilation errors in the plugin system that need to be fixed before the editor can be run.
+
+5. **Numerous Warnings**: The codebase has many warnings about unused variables, imports, and other issues that should be addressed to improve code quality.
+
+To address these issues, we need to:
+
+1. Simplify the lock acquisition pattern to avoid potential deadlocks
+2. Refactor the UI operations to be more independent of the plugin system
+3. Implement a more robust conversation management system
+4. Fix the compilation errors and address the warnings
+
+### Error Handling Strategy
+
+Error handling follows a consistent pattern:
+
+```rust
+// Custom error types
+pub enum ExCommandError {
+    InvalidCommand(String),
+    MissingArgument(String),
+    InvalidArgument(String),
+    // ...
+}
+
+// Result type alias
+pub type ExCommandResult<T> = Result<T, ExCommandError>;
+
+// Error propagation
+fn handle_command(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Implementation that may return errors
+    if cmd.args.is_empty() {
+        return Err(ExCommandError::MissingArgument("Required argument missing".to_string()));
+    }
+    
+    // Success case
+    Ok(())
+}
+```
+
+Benefits:
+- Clear error messages for users
+- Type-safe error handling
+- Consistent error propagation
+
+## Code Organization Patterns
+
+### Module Structure
+
+The codebase is organized into modules by functionality:
+
+```
+src/
+├── buffer/       # Text buffer management
+├── command/      # Ex command implementation
+├── cursor/       # Cursor management
+├── editor/       # Core editor functionality
+├── input/        # Input handling
+├── mode/         # Editor modes
+├── plugin/       # WASM plugin system
+├── search/       # Search functionality
+├── selection/    # Selection management
+├── ui/           # Terminal UI components
+└── visual/       # Visual mode implementation
+```
+
+### Interface Segregation
+
+Interfaces are kept small and focused:
+
+```rust
+trait BufferReader {
+    fn get_line(&self, line: usize) -> Option<&str>;
+    fn line_count(&self) -> usize;
+    // ...
+}
+
+trait BufferWriter {
+    fn insert(&mut self, pos: Position, text: &str) -> Result<(), BufferError>;
+    fn delete(&mut self, range: Range) -> Result<(), BufferError>;
+    // ...
+}
+```
+
+### Dependency Injection
+
+Components receive their dependencies through constructors or setters:
+
+```rust
+struct Editor {
+    buffer_manager: BufferManager,
+    command_registry: ExCommandRegistry,
+    // ...
+}
+
+impl Editor {
+    pub fn new(
+        buffer_manager: BufferManager,
+        command_registry: ExCommandRegistry,
+    ) -> Self {
+        // ...
+    }
+}
+```
+
+These patterns work together to create a maintainable, extensible, and robust codebase for the xvim editor.

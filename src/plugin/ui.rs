@@ -25,24 +25,34 @@ pub enum UiElementType {
     Custom(String),
 }
 
+impl UiElementType {
+    /// Get the custom type if this is a custom element
+    pub fn custom_type(&self) -> Option<&String> {
+        match self {
+            UiElementType::Custom(custom_type) => Some(custom_type),
+            _ => None,
+        }
+    }
+}
+
 /// UI element
 pub struct UiElement {
     /// Element ID
-    id: String,
+    pub id: String,
     /// Element type
-    element_type: UiElementType,
+    pub element_type: UiElementType,
     /// Element title
-    title: String,
+    pub title: String,
     /// Element content
-    content: String,
+    pub content: String,
     /// Element position (line, column)
-    position: Option<(usize, usize)>,
+    pub position: Option<(usize, usize)>,
     /// Element size (width, height)
-    size: Option<(usize, usize)>,
+    pub size: Option<(usize, usize)>,
     /// Element visibility
-    visible: bool,
+    pub visible: bool,
     /// Element properties
-    properties: HashMap<String, String>,
+    pub properties: HashMap<String, String>,
 }
 
 impl UiElement {
@@ -68,6 +78,11 @@ impl UiElement {
     /// Get the element type
     pub fn element_type(&self) -> &UiElementType {
         &self.element_type
+    }
+    
+    /// Get a mutable reference to the element type
+    pub fn element_type_mut(&mut self) -> &mut UiElementType {
+        &mut self.element_type
     }
     
     /// Get the element title
@@ -207,13 +222,15 @@ impl UiManager {
         if let Some(element) = self.elements.get(id) {
             if element.is_visible() {
                 // Render the element based on its type
-                match element.element_type() {
+                match element.element_type {
                     UiElementType::Window => self.render_window(element)?,
                     UiElementType::Dialog => self.render_dialog(element)?,
                     UiElementType::StatusBarItem => self.render_status_bar_item(element)?,
                     UiElementType::PopupMenu => self.render_popup_menu(element)?,
                     UiElementType::FloatingWindow => self.render_floating_window(element)?,
-                    UiElementType::Custom(custom_type) => self.render_custom_element(element, custom_type)?,
+                    UiElementType::Custom(ref custom_type) => {
+                        self.render_custom_element(element, custom_type)?
+                    },
                 }
             }
         }
@@ -229,13 +246,15 @@ impl UiManager {
         for (id, element) in &self.elements {
             if element.is_visible() {
                 // Render the element based on its type
-                match element.element_type() {
+                match element.element_type {
                     UiElementType::Window => self.render_window(element)?,
                     UiElementType::Dialog => self.render_dialog(element)?,
                     UiElementType::StatusBarItem => self.render_status_bar_item(element)?,
                     UiElementType::PopupMenu => self.render_popup_menu(element)?,
                     UiElementType::FloatingWindow => self.render_floating_window(element)?,
-                    UiElementType::Custom(custom_type) => self.render_custom_element(element, custom_type)?,
+                    UiElementType::Custom(ref custom_type) => {
+                        self.render_custom_element(element, custom_type)?
+                    },
                 }
             }
         }
@@ -294,12 +313,17 @@ impl UiManager {
     }
     
     /// Render a custom UI element
-    fn render_custom_element(&self, element: &UiElement, custom_type: &str) -> Result<(), UiError> {
+    fn render_custom_element(&self, element: &UiElement, custom_type: &String) -> Result<(), UiError> {
         // Get a lock on the terminal
         let mut terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
         
         // TODO: Implement custom element rendering
         
         Ok(())
+    }
+    
+    /// Get the terminal UI
+    pub fn terminal(&self) -> Option<Arc<Mutex<TerminalUi>>> {
+        Some(self.terminal.clone())
     }
 }
