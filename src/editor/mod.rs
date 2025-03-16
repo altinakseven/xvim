@@ -24,6 +24,7 @@ use crate::syntax::{SyntaxRegistry, Theme, create_default_registry, create_defau
 use crate::ui::{TerminalUi, UiError};
 use crate::search::{SearchState, SearchDirection, SearchFunctions};
 use crate::visual::{VisualState, VisualFunctions, BufferVisualExt};
+use crate::insert::{InsertState, InsertFunctions, BufferInsertExt};
 use crossterm::event::KeyEvent;
 use std::sync::{Arc, Mutex};
 
@@ -152,6 +153,8 @@ pub struct Editor {
     search_state: SearchState,
     /// Visual mode state
     visual_state: VisualState,
+    /// Insert mode state
+    insert_state: InsertState,
 }
 
 impl Editor {
@@ -247,6 +250,7 @@ impl Editor {
             command_buffer: String::new(),
             search_state: SearchState::new(),
             visual_state: VisualState::new(),
+            insert_state: InsertState::new(),
         };
         
         // Create an initial empty buffer
@@ -771,7 +775,7 @@ impl Editor {
                         Operator::Change => {
                             let buffer = self.buffer_manager.get_buffer_mut(buffer_id)?;
                             buffer.delete(start, end)?;
-                            self.mode_manager.enter_insert_mode();
+                            self.start_insert_mode(false)?;
                         },
                         Operator::Yank => {
                             // Just yank, no need to modify the buffer
@@ -1121,11 +1125,13 @@ impl Editor {
             KeyCommand::BuiltIn(cmd) => {
                 match cmd.as_str() {
                     "quit" => self.quit(),
-                    "enter_insert_mode" => self.mode_manager.enter_insert_mode(),
+                    "enter_insert_mode" => { self.start_insert_mode(false)?; },
                     "enter_normal_mode" => {
                         // If we're in visual mode, end it properly
                         if self.current_mode().is_visual() {
                             self.end_visual_mode()?;
+                        } else if self.current_mode() == crate::mode::Mode::Insert {
+                            self.end_insert_mode()?;
                         } else {
                             self.mode_manager.enter_normal_mode();
                         }
@@ -1554,7 +1560,7 @@ impl Editor {
                     self.cursor_manager.set_position(new_position);
                     
                     // Enter insert mode
-                    self.mode_manager.enter_insert_mode();
+                    self.start_insert_mode(false)?;
                 }
             },
             
@@ -1583,7 +1589,7 @@ impl Editor {
                     self.cursor_manager.set_position(new_position);
                     
                     // Enter insert mode
-                    self.mode_manager.enter_insert_mode();
+                    self.start_insert_mode(false)?;
                 }
             },
             
@@ -1646,65 +1652,22 @@ impl Editor {
             
             // Handle key presses in insert mode
             (Mode::Insert, KeyCode::Char(c)) => {
-                if let Some(buffer_id) = self.current_buffer_id() {
-                    let buffer = self.buffer_manager.get_buffer_mut(buffer_id)?;
-                    
-                    // Get cursor position
-                    let cursor_pos = self.cursor_manager.position();
-                    
-                    // Convert cursor position to character index
-                    let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
-                    
-                    // Insert the character at the cursor position
-                    buffer.insert(cursor_position, &c.to_string())?;
-                    
-                    // Update cursor position
-                    let new_position = buffer.char_idx_to_position(cursor_position + 1)?;
-                    self.cursor_manager.set_position(new_position);
-                }
+                self.insert_text(&c.to_string())?;
             },
             
             // Handle backspace in insert mode
             (Mode::Insert, KeyCode::Backspace) => {
-                if let Some(buffer_id) = self.current_buffer_id() {
-                    let buffer = self.buffer_manager.get_buffer_mut(buffer_id)?;
-                    
-                    // Get cursor position
-                    let cursor_pos = self.cursor_manager.position();
-                    
-                    // Convert cursor position to character index
-                    let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
-                    
-                    // Only delete if we're not at the beginning of the buffer
-                    if cursor_position > 0 {
-                        // Delete the character before the cursor
-                        buffer.delete(cursor_position - 1, cursor_position)?;
-                        
-                        // Update cursor position
-                        let new_position = buffer.char_idx_to_position(cursor_position - 1)?;
-                        self.cursor_manager.set_position(new_position);
-                    }
-                }
+                self.delete_char_before_cursor()?;
+            },
+            
+            // Handle delete in insert mode
+            (Mode::Insert, KeyCode::Delete) => {
+                self.delete_char_at_cursor()?;
             },
             
             // Handle enter in insert mode
             (Mode::Insert, KeyCode::Enter) => {
-                if let Some(buffer_id) = self.current_buffer_id() {
-                    let buffer = self.buffer_manager.get_buffer_mut(buffer_id)?;
-                    
-                    // Get cursor position
-                    let cursor_pos = self.cursor_manager.position();
-                    
-                    // Convert cursor position to character index
-                    let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
-                    
-                    // Insert a newline at the cursor position
-                    buffer.insert(cursor_position, "\n")?;
-                    
-                    // Update cursor position
-                    let new_position = buffer.char_idx_to_position(cursor_position + 1)?;
-                    self.cursor_manager.set_position(new_position);
-                }
+                self.insert_newline()?;
             },
             
             // TODO: Handle other keys based on mode
@@ -2656,7 +2619,7 @@ impl Editor {
             match buffer.delete(start, end) {
                 Ok(_) => {
                     // Enter insert mode
-                    self.mode_manager.enter_insert_mode();
+                    self.start_insert_mode(false)?;
                     Ok(true)
                 },
                 Err(err) => Err(EditorError::Buffer(err.into())),
@@ -2785,7 +2748,7 @@ impl Editor {
                     self.cursor_manager.set_position(new_pos);
                     
                     // Enter insert mode
-                    self.mode_manager.enter_insert_mode();
+                    self.start_insert_mode(false)?;
                     Ok(true)
                 },
                 Err(err) => Err(EditorError::Buffer(err.into())),
@@ -3127,6 +3090,214 @@ impl VisualFunctions for Editor {
     
     fn visual_state_mut(&mut self) -> &mut VisualState {
         &mut self.visual_state
+    }
+}
+
+// Implement InsertFunctions for Editor
+impl InsertFunctions for Editor {
+    fn start_insert_mode(&mut self, replace: bool) -> EditorResult<()> {
+        let cursor = self.cursor_position();
+        
+        // Set insert mode
+        self.insert_state_mut().start(cursor, replace);
+        
+        // Enter insert mode
+        self.mode_manager.enter_insert_mode();
+        
+        Ok(())
+    }
+    
+    fn end_insert_mode(&mut self) -> EditorResult<()> {
+        // End insert mode
+        self.insert_state_mut().end();
+        
+        // Enter normal mode
+        self.mode_manager.enter_normal_mode();
+        
+        Ok(())
+    }
+    
+    fn insert_text(&mut self, text: &str) -> EditorResult<()> {
+        if let Some(buffer_id) = self.current_buffer_id() {
+            // Record the inserted text first to avoid multiple mutable borrows
+            self.insert_state_mut().record_insert(text);
+            
+            // Get cursor position
+            let cursor_pos = self.cursor_manager.position();
+            
+            // Now get the buffer and perform operations
+            let buffer = self.buffer_manager.get_buffer_mut(buffer_id)?;
+            
+            // Convert cursor position to character index
+            let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
+            
+            // Insert the text at the cursor position
+            buffer.insert(cursor_position, text)?;
+            
+            // Update cursor position
+            let new_position = buffer.char_idx_to_position(cursor_position + text.len())?;
+            self.cursor_manager.set_position(new_position);
+            
+            Ok(())
+        } else {
+            Err(EditorError::Other("No buffer selected".to_string()))
+        }
+    }
+    
+    fn delete_char_before_cursor(&mut self) -> EditorResult<()> {
+        if let Some(buffer_id) = self.current_buffer_id() {
+            // Get cursor position
+            let cursor_pos = self.cursor_manager.position();
+            
+            // First get a reference to the buffer to check content
+            let buffer = self.buffer_manager.get_buffer(buffer_id)?;
+            
+            // Convert cursor position to character index
+            let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
+            
+            // Only delete if we're not at the beginning of the buffer
+            if cursor_position > 0 {
+                // Get the character to be deleted
+                let content = buffer.content();
+                let char_to_delete = if cursor_position <= content.len() {
+                    content[cursor_position - 1..cursor_position].to_string()
+                } else {
+                    String::new()
+                };
+                
+                // Record the deleted text
+                if !char_to_delete.is_empty() {
+                    self.insert_state_mut().record_delete(&char_to_delete);
+                }
+                
+                // Now get a mutable reference to the buffer and perform the deletion
+                let buffer = self.buffer_manager.get_buffer_mut(buffer_id)?;
+                
+                // Delete the character before the cursor
+                buffer.delete(cursor_position - 1, cursor_position)?;
+                
+                // Update cursor position
+                let new_position = buffer.char_idx_to_position(cursor_position - 1)?;
+                self.cursor_manager.set_position(new_position);
+            }
+            
+            Ok(())
+        } else {
+            Err(EditorError::Other("No buffer selected".to_string()))
+        }
+    }
+    
+    fn delete_char_at_cursor(&mut self) -> EditorResult<()> {
+        if let Some(buffer_id) = self.current_buffer_id() {
+            // Get cursor position
+            let cursor_pos = self.cursor_manager.position();
+            
+            // First get a reference to the buffer to check content
+            let buffer = self.buffer_manager.get_buffer(buffer_id)?;
+            
+            // Convert cursor position to character index
+            let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
+            
+            // Get the content length
+            let content_len = buffer.content().len();
+            
+            // Only delete if we're not at the end of the buffer
+            if cursor_position < content_len {
+                // Get the character to be deleted
+                let content = buffer.content();
+                let char_to_delete = if cursor_position < content.len() {
+                    content[cursor_position..cursor_position + 1].to_string()
+                } else {
+                    String::new()
+                };
+                
+                // Record the deleted text
+                if !char_to_delete.is_empty() {
+                    self.insert_state_mut().record_delete(&char_to_delete);
+                }
+                
+                // Now get a mutable reference to the buffer and perform the deletion
+                let buffer = self.buffer_manager.get_buffer_mut(buffer_id)?;
+                
+                // Delete the character at the cursor
+                buffer.delete(cursor_position, cursor_position + 1)?;
+            }
+            
+            Ok(())
+        } else {
+            Err(EditorError::Other("No buffer selected".to_string()))
+        }
+    }
+    
+    fn insert_newline(&mut self) -> EditorResult<()> {
+        if let Some(buffer_id) = self.current_buffer_id() {
+            // Get cursor position
+            let cursor_pos = self.cursor_manager.position();
+            
+            // Check auto-indent setting first
+            let auto_indent = self.insert_state().auto_indent;
+            
+            // First get a reference to the buffer to check content
+            let buffer = self.buffer_manager.get_buffer(buffer_id)?;
+            
+            // Convert cursor position to character index
+            let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
+            
+            // Get the current line content to determine indentation
+            let current_line = buffer.line(cursor_pos.line)?;
+            
+            // Calculate auto-indent by finding leading whitespace
+            let indent = if auto_indent {
+                let mut indent_str = String::new();
+                for c in current_line.chars() {
+                    if c.is_whitespace() {
+                        indent_str.push(c);
+                    } else {
+                        break;
+                    }
+                }
+                indent_str
+            } else {
+                String::new()
+            };
+            
+            // Record the inserted text before modifying the buffer
+            self.insert_state_mut().record_insert("\n");
+            if !indent.is_empty() {
+                self.insert_state_mut().record_insert(&indent);
+            }
+            
+            // Now get a mutable reference to the buffer and perform the insertion
+            let buffer = self.buffer_manager.get_buffer_mut(buffer_id)?;
+            
+            // Insert a newline at the cursor position
+            buffer.insert(cursor_position, "\n")?;
+            
+            // Update cursor position to the beginning of the new line
+            let new_position = buffer.char_idx_to_position(cursor_position + 1)?;
+            self.cursor_manager.set_position(new_position);
+            
+            // Insert the auto-indent
+            if !indent.is_empty() {
+                buffer.insert(cursor_position + 1, &indent)?;
+                
+                // Update cursor position after indent
+                let new_position = buffer.char_idx_to_position(cursor_position + 1 + indent.len())?;
+                self.cursor_manager.set_position(new_position);
+            }
+            
+            Ok(())
+        } else {
+            Err(EditorError::Other("No buffer selected".to_string()))
+        }
+    }
+    
+    fn insert_state(&self) -> &InsertState {
+        &self.insert_state
+    }
+    
+    fn insert_state_mut(&mut self) -> &mut InsertState {
+        &mut self.insert_state
     }
 }
 

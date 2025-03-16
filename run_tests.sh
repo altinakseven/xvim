@@ -12,4 +12,8 @@ cargo test --test search_test
 echo "Running visual mode tests..."
 cargo test --test visual_test
 
+# Run the insert mode test
+echo "Running insert mode tests..."
+cargo test --test insert_test
+
 echo "All tests completed!"

@@ -130,7 +130,7 @@ Our error handling strategy focuses on:
 
 1. ~~Complete the implementation of the `:read` command to fully insert file content~~ ✓ Completed
 2. ~~Implement Visual mode selection and operations~~ ✓ Completed
-3. Implement Insert mode text entry
+3. ~~Implement Insert mode text entry~~ ✓ Completed
 4. Begin work on the WASM plugin system
 5. Enhance Visual mode with more text objects and operations
 6. ~~Fix the compilation error in the plugin system related to the NoxChat command~~ ✓ Completed

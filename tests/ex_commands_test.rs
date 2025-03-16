@@ -7,9 +7,10 @@ use std::fs;
 use std::io::Write;
 
 // Import the necessary modules from the xvim crate
-use xvim::command::{ExCommand, ExCommandRegistry};
+use xvim::command::{ExCommand, ExCommandRegistry, ExCommandParser};
 use xvim::editor::Editor;
 use xvim::command::handlers;
+use xvim::insert::InsertFunctions;
 
 /// Test the :write command
 fn test_write_command() {
@@ -19,22 +20,25 @@ fn test_write_command() {
     let temp_file = Path::new("test_write.txt");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer with some content
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     editor.insert_text("This is a test file for the :write command.\n").unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :write command
-    let cmd = ExCommand::parse("write test_write.txt").unwrap();
+    let cmd = parser.parse("write test_write.txt").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -60,21 +64,24 @@ fn test_read_command() {
     file.flush().unwrap();
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :read command
-    let cmd = ExCommand::parse("read test_read.txt").unwrap();
+    let cmd = parser.parse("read test_read.txt").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -91,22 +98,25 @@ fn test_yank_command() {
     println!("Testing :yank command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer with some content
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     editor.insert_text("Line 1\nLine 2\nLine 3\n").unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :yank command
-    let cmd = ExCommand::parse("yank 2").unwrap();
+    let cmd = parser.parse("yank 2").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -120,27 +130,30 @@ fn test_put_command() {
     println!("Testing :put command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer with some content
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     editor.insert_text("Line 1\nLine 2\nLine 3\n").unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // First yank some text
-    let yank_cmd = ExCommand::parse("yank 2").unwrap();
+    let yank_cmd = parser.parse("yank 2").unwrap();
     let yank_result = registry.execute(&yank_cmd);
     assert!(yank_result.is_ok(), "Failed to execute :yank command: {:?}", yank_result);
     
     // Then execute the :put command
-    let put_cmd = ExCommand::parse("put").unwrap();
+    let put_cmd = parser.parse("put").unwrap();
     let put_result = registry.execute(&put_cmd);
     
     // Check the result
@@ -154,22 +167,25 @@ fn test_copy_command() {
     println!("Testing :copy command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer with some content
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     editor.insert_text("Line 1\nLine 2\nLine 3\n").unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :copy command
-    let cmd = ExCommand::parse("copy 3").unwrap();
+    let cmd = parser.parse("copy 3").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -183,22 +199,25 @@ fn test_move_command() {
     println!("Testing :move command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer with some content
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     editor.insert_text("Line 1\nLine 2\nLine 3\n").unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :move command
-    let cmd = ExCommand::parse("move 3").unwrap();
+    let cmd = parser.parse("move 3").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -212,22 +231,25 @@ fn test_substitute_command() {
     println!("Testing :substitute command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer with some content
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     editor.insert_text("Line 1\nLine 2\nLine 3\n").unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :substitute command
-    let cmd = ExCommand::parse("substitute/Line/NewLine/g").unwrap();
+    let cmd = parser.parse("substitute/Line/NewLine/g").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -241,22 +263,25 @@ fn test_global_command() {
     println!("Testing :global command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer with some content
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     editor.insert_text("Line 1\nLine 2\nLine 3\n").unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
+    // Create a command parser
+    let parser = ExCommandParser::new();
     
     // Execute the :global command
-    let cmd = ExCommand::parse("global/Line/delete").unwrap();
+    let cmd = parser.parse("global/Line/delete").unwrap();
+    let result = registry.execute(&cmd);
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -270,22 +295,25 @@ fn test_vglobal_command() {
     println!("Testing :vglobal command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer with some content
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     editor.insert_text("Line 1\nLine 2\nLine 3\n").unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :vglobal command
-    let cmd = ExCommand::parse("vglobal/Line 2/delete").unwrap();
+    let cmd = parser.parse("vglobal/Line 2/delete").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -299,7 +327,7 @@ fn test_set_command() {
     println!("Testing :set command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
@@ -308,8 +336,11 @@ fn test_set_command() {
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :set command
-    let cmd = ExCommand::parse("set number").unwrap();
+    let cmd = parser.parse("set number").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -323,7 +354,7 @@ fn test_map_command() {
     println!("Testing :map command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
@@ -332,8 +363,11 @@ fn test_map_command() {
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :map command
-    let cmd = ExCommand::parse("map j gj").unwrap();
+    let cmd = parser.parse("map j gj").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -347,7 +381,7 @@ fn test_unmap_command() {
     println!("Testing :unmap command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
@@ -356,13 +390,16 @@ fn test_unmap_command() {
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // First map a key
-    let map_cmd = ExCommand::parse("map j gj").unwrap();
+    let map_cmd = parser.parse("map j gj").unwrap();
     let map_result = registry.execute(&map_cmd);
     assert!(map_result.is_ok(), "Failed to execute :map command: {:?}", map_result);
     
     // Then execute the :unmap command
-    let unmap_cmd = ExCommand::parse("unmap j").unwrap();
+    let unmap_cmd = parser.parse("unmap j").unwrap();
     let unmap_result = registry.execute(&unmap_cmd);
     
     // Check the result
@@ -376,7 +413,7 @@ fn test_registers_command() {
     println!("Testing :registers command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
@@ -385,8 +422,11 @@ fn test_registers_command() {
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :registers command
-    let cmd = ExCommand::parse("registers").unwrap();
+    let cmd = parser.parse("registers").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
@@ -400,21 +440,24 @@ fn test_buffers_command() {
     println!("Testing :buffers command...");
     
     // Create an editor instance
-    let mut editor = Editor::new();
+    let mut editor = Editor::new().unwrap();
     
     // Set the editor reference in the handlers
     handlers::set_editor(&mut editor);
     
     // Create a buffer
-    let buffer_id = editor.create_buffer().unwrap();
-    editor.set_current_buffer(buffer_id);
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
     
     // Create a command registry
     let mut registry = ExCommandRegistry::new();
     handlers::register_handlers(&mut registry, None);
     
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
     // Execute the :buffers command
-    let cmd = ExCommand::parse("buffers").unwrap();
+    let cmd = parser.parse("buffers").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result

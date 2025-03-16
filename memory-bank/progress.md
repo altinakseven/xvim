@@ -91,8 +91,8 @@ This document tracks the current state of the xvim project, highlighting what ha
 - [x] Swap selection corners with 'o' and 'O'
 
 ### Insert Mode
-- [ ] Basic text insertion
-- [ ] Auto-indentation
+- [x] Basic text insertion
+- [x] Auto-indentation
 - [ ] Completion
 
 ## Planned Features
@@ -132,6 +132,13 @@ This document tracks the current state of the xvim project, highlighting what ha
   - Removed complex lock management that was causing deadlocks
   - Set the buffer as read-only to prevent editing attempts
   - Added informative content about the AI functionality being under development
+- Implemented Insert mode text entry:
+  - Created InsertFunctions trait for the Editor struct
+  - Implemented basic text insertion and deletion
+  - Added auto-indentation support
+  - Fixed borrow checker errors in the implementation
+  - Updated key handling to use the new insert mode methods
+  - Created comprehensive test file (insert_test.rs) for Insert mode functionality
 
 ### March 14, 2025
 - Installed Rust toolchain (rustc 1.85.0, cargo 1.85.0) for running tests
@@ -160,7 +167,7 @@ This document tracks the current state of the xvim project, highlighting what ha
 
 1. Complete the implementation of Normal mode commands
 2. ~~Implement Visual mode selection~~ ✓ Completed
-3. Implement Insert mode text entry
+3. ~~Implement Insert mode text entry~~ ✓ Completed
 4. Begin work on the WASM plugin system
 5. Add syntax highlighting support
 6. Implement search and replace functionality
