@@ -126,11 +126,12 @@ This document tracks the current state of the xvim project, highlighting what ha
 ### March 15, 2025
 - Completed the implementation of the `:read` command to fully insert file content
 - Improved window navigation with `:wnext` and `:wprev` commands
-- Fixed the `:noxchat` command to properly create split windows for AI chat:
-  - Integrated approach inspired by claude.vim plugin
-  - Separated buffer creation from window splitting to avoid UI deadlocks
-  - Used Ex commands for window manipulation instead of direct UI calls
-  - Improved lock management to prevent potential deadlocks
+- Completely redesigned the `:noxchat` command to fix persistent cursor positioning issues:
+  - Replaced the chat interface with a read-only information buffer
+  - Simplified the command implementation to avoid cursor positioning and insert mode
+  - Removed complex lock management that was causing deadlocks
+  - Set the buffer as read-only to prevent editing attempts
+  - Added informative content about the AI functionality being under development
 
 ### March 14, 2025
 - Installed Rust toolchain (rustc 1.85.0, cargo 1.85.0) for running tests
@@ -172,5 +173,5 @@ This document tracks the current state of the xvim project, highlighting what ha
 2. Error handling could be improved in some areas
 3. Need more comprehensive tests for edge cases
 4. There are compilation warnings throughout the codebase that should be addressed
-5. There are still persistent compilation errors in the codebase that need to be fixed before the editor can be run, despite our progress in fixing the `:noxchat` command
-6. The AI conversation functionality is partially implemented but not fully integrated with the editor
+5. There are still persistent compilation errors in the codebase that need to be fixed before the editor can be run
+6. The AI conversation functionality has been temporarily replaced with a read-only information buffer due to cursor positioning issues

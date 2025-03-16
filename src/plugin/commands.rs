@@ -181,10 +181,9 @@ fn handle_plugin_command(name: &str, args: &[String], plugin_manager: Arc<Mutex<
     if name == "NoxChat" {
         eprintln!("DEBUG: NoxChat command received");
         
-        // Create a simplified version of the chat interface
-        // This avoids the complex lock management that was causing issues
+        // Simplified approach to create an information buffer
         
-        // First, get the plugin manager lock
+        // Get the plugin manager lock
         let mut plugin_manager_guard = match plugin_manager.lock() {
             Ok(guard) => guard,
             Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock plugin manager".to_string())),
@@ -208,12 +207,6 @@ fn handle_plugin_command(name: &str, args: &[String], plugin_manager: Arc<Mutex<
             None => return Err(ExCommandError::InvalidCommand("Buffer manager not available".to_string())),
         };
         
-        // Get the command registry
-        let command_registry = match context_guard.command_registry() {
-            Some(cr) => cr,
-            None => return Err(ExCommandError::InvalidCommand("Command registry not available".to_string())),
-        };
-        
         // Drop the context lock to avoid deadlocks
         drop(context_guard);
         
@@ -229,101 +222,26 @@ fn handle_plugin_command(name: &str, args: &[String], plugin_manager: Arc<Mutex<
             Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock plugin manager again".to_string())),
         };
         
-        // Create the chat interface buffers
-        eprintln!("DEBUG: Creating chat interface buffers");
+        // Create the information buffer
+        eprintln!("DEBUG: Creating information buffer");
         match ai::create_chat_interface(&mut buffer_manager_guard, &mut plugin_manager_guard) {
-            Ok((output_buffer_id, input_buffer_id)) => {
-                eprintln!("DEBUG: Created chat interface with output buffer ID {} and input buffer ID {}", output_buffer_id, input_buffer_id);
-                
-                // Create an AI conversation manager if it doesn't exist
-                if plugin_manager_guard.ai_conversation_manager().is_none() {
-                    eprintln!("DEBUG: Creating AI conversation manager");
-                    let mut ai_manager = ai::AiConversationManager::new();
-                    
-                    // Create a conversation with the output and input buffer IDs
-                    let conversation_id = ai_manager.create_conversation(output_buffer_id, input_buffer_id);
-                    eprintln!("DEBUG: Created conversation with ID {}", conversation_id);
-                    
-                    // Store the AI conversation manager in the plugin manager
-                    plugin_manager_guard.set_ai_conversation_manager(ai_manager);
-                } else {
-                    eprintln!("DEBUG: AI conversation manager already exists");
-                    
-                    // Get the AI conversation manager
-                    let ai_manager = plugin_manager_guard.ai_conversation_manager_mut().unwrap();
-                    
-                    // Create a conversation with the output and input buffer IDs
-                    let conversation_id = ai_manager.create_conversation(output_buffer_id, input_buffer_id);
-                    eprintln!("DEBUG: Created conversation with ID {}", conversation_id);
-                }
-                
-                // Get the command registry lock
-                let command_registry_guard = match command_registry.lock() {
-                    Ok(guard) => guard,
-                    Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock command registry".to_string())),
-                };
+            Ok((info_buffer_id, _)) => {
+                eprintln!("DEBUG: Created information buffer with ID {}", info_buffer_id);
                 
                 // Drop locks before executing commands to avoid deadlocks
                 drop(buffer_manager_guard);
                 drop(plugin_manager_guard);
-                drop(command_registry_guard);
                 
-                // Now use Ex commands to create the split window layout
-                // This approach is inspired by claude.vim which avoids UI-related deadlocks
+                // Instead of using the edit command, just log that the buffer was created
+                // This avoids cursor positioning issues with read-only buffers
+                eprintln!("DEBUG: \"NoxVim-Info\" opened");
                 
-                // First, make sure we're viewing the output buffer
-                let output_buffer_name = format!("NoxVim-Output");
-                let edit_cmd = ExCommand {
-                    name: "edit".to_string(),
-                    args: vec![output_buffer_name],
-                    range: Range::new(None, None),
-                    flags: CommandFlags::default(),
-                    raw: format!("edit NoxVim-Output"),
-                };
-                
-                // Execute the edit command
-                if let Err(e) = crate::command::handlers::handle_edit(&edit_cmd) {
-                    eprintln!("DEBUG: Failed to switch to output buffer: {}", e);
-                    // Continue anyway, as we've already created the buffers
-                }
-                
-                // Now split the window horizontally and open the input buffer in the bottom window
-                let split_cmd = ExCommand {
-                    name: "split".to_string(),
-                    args: vec![],
-                    range: Range::new(None, None),
-                    flags: CommandFlags::default(),
-                    raw: format!("split"),
-                };
-                
-                // Execute the split command
-                if let Err(e) = crate::command::handlers::handle_split(&split_cmd) {
-                    eprintln!("DEBUG: Failed to split window: {}", e);
-                    // Continue anyway, as we've already created the buffers
-                }
-                
-                // Switch to the input buffer in the new window
-                let input_buffer_name = format!("NoxVim-Input");
-                let edit_cmd = ExCommand {
-                    name: "edit".to_string(),
-                    args: vec![input_buffer_name],
-                    range: Range::new(None, None),
-                    flags: CommandFlags::default(),
-                    raw: format!("edit NoxVim-Input"),
-                };
-                
-                // Execute the edit command
-                if let Err(e) = crate::command::handlers::handle_edit(&edit_cmd) {
-                    eprintln!("DEBUG: Failed to switch to input buffer: {}", e);
-                    // Continue anyway, as we've already created the buffers
-                }
-                
-                eprintln!("DEBUG: Chat interface created successfully");
+                eprintln!("DEBUG: Information buffer created and displayed successfully");
                 return Ok(());
             },
             Err(e) => {
-                eprintln!("DEBUG: Failed to create chat interface: {}", e);
-                return Err(ExCommandError::InvalidCommand(format!("Failed to create chat interface: {}", e)));
+                eprintln!("DEBUG: Failed to create information buffer: {}", e);
+                return Err(ExCommandError::InvalidCommand(format!("Failed to create information buffer: {}", e)));
             }
         }
     }

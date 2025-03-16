@@ -1728,14 +1728,18 @@ impl Editor {
         // Set the global editor reference for command handlers
         crate::command::set_editor(self);
         
+        // Initial render
+        self.render()?;
+        
         // Main event loop
         while self.running {
-            // Render the current state
-            self.render()?;
-            
             // Handle input
             if let Some(key) = self.terminal.poll_key(100)? {
+                // Process the key
                 self.process_key(key)?;
+                
+                // Render the screen after processing input
+                self.render()?;
             }
             
             // Check if a command has requested to quit
