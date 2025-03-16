@@ -54,12 +54,16 @@ impl CommandParser {
                 Err(_) => None,
             }
         } else if input.starts_with('/') || input.starts_with('?') {
-            // Search command (handled as an ex command)
-            let search_cmd = format!("/{}", &input[1..]);
-            match self.ex_parser.parse(&search_cmd) {
-                Ok(ex_cmd) => Some(Command::Ex(ex_cmd)),
-                Err(_) => None,
-            }
+            // Search command (handled as a special ex command)
+            let pattern = &input[1..];
+            let mut cmd = ex::ExCommand::new(
+                "search",
+                ex::Range::new(None, None),
+                ex::CommandFlags::default(),
+                vec![pattern.to_string()],
+                input
+            );
+            Some(Command::Ex(cmd))
         } else {
             // For now, treat other commands as normal mode commands
             Some(Command::Normal(input.to_string()))

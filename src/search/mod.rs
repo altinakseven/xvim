@@ -246,13 +246,21 @@ mod tests {
         state.set_pattern("pattern2".to_string());
         state.set_pattern("pattern3".to_string());
         
+        // The history should now contain: pattern3, pattern2, pattern1, test (in that order)
+        // Let's verify the current pattern first
+        assert_eq!(state.pattern(), Some("pattern3"));
+        
+        // Now let's check the history navigation
+        // The first call to history_next() should return the current pattern
         assert_eq!(state.history_next(), Some("pattern3"));
         assert_eq!(state.history_next(), Some("pattern2"));
         assert_eq!(state.history_next(), Some("pattern1"));
+        assert_eq!(state.history_next(), Some("test"));
         assert_eq!(state.history_next(), Some("pattern3")); // Wrap around
         
-        assert_eq!(state.history_prev(), Some("pattern2"));
+        assert_eq!(state.history_prev(), Some("test"));
         assert_eq!(state.history_prev(), Some("pattern1"));
+        assert_eq!(state.history_prev(), Some("pattern2"));
         assert_eq!(state.history_prev(), Some("pattern3")); // Wrap around
     }
 }

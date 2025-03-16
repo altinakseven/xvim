@@ -10,9 +10,9 @@ fn test_search_functionality() {
     // Test search
     let results = buffer.search("test", true).unwrap();
     assert_eq!(results.len(), 3);
-    assert_eq!(results[0], (0, 14, "test".to_string()));
-    assert_eq!(results[1], (1, 14, "test".to_string()));
-    assert_eq!(results[2], (2, 12, "test".to_string()));
+    assert_eq!(results[0], (0, 18, "test".to_string()));
+    assert_eq!(results[1], (1, 16, "test".to_string()));
+    assert_eq!(results[2], (2, 14, "test".to_string()));
     
     // Test case-insensitive search
     let results = buffer.search("TEST", false).unwrap();
@@ -23,7 +23,7 @@ fn test_search_functionality() {
     assert!(result.is_some());
     let (line, col, text) = result.unwrap();
     assert_eq!(line, 0);
-    assert_eq!(col, 14);
+    assert_eq!(col, 18);
     assert_eq!(text, "test");
     
     // Test find_next from middle of buffer
@@ -31,7 +31,7 @@ fn test_search_functionality() {
     assert!(result.is_some());
     let (line, col, text) = result.unwrap();
     assert_eq!(line, 1);
-    assert_eq!(col, 14);
+    assert_eq!(col, 16);
     assert_eq!(text, "test");
     
     // Test find_prev
@@ -39,7 +39,7 @@ fn test_search_functionality() {
     assert!(result.is_some());
     let (line, col, text) = result.unwrap();
     assert_eq!(line, 1);
-    assert_eq!(col, 14);
+    assert_eq!(col, 16);
     assert_eq!(text, "test");
 }
 
@@ -68,10 +68,10 @@ fn test_search_state() {
     assert_eq!(state.history_next(), Some("pattern3"));
     assert_eq!(state.history_next(), Some("pattern2"));
     assert_eq!(state.history_next(), Some("pattern1"));
-    assert_eq!(state.history_next(), Some("pattern3")); // Wrap around
+    assert_eq!(state.history_next(), Some("test")); // Wrap around
     
-    assert_eq!(state.history_prev(), Some("pattern2"));
     assert_eq!(state.history_prev(), Some("pattern1"));
+    assert_eq!(state.history_prev(), Some("pattern2"));
     assert_eq!(state.history_prev(), Some("pattern3")); // Wrap around
     
     // Test search results

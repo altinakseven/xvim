@@ -71,7 +71,6 @@ pub enum RangeSpec {
     /// Relative offset from current line
     Offset(isize),
 }
-
 impl FromStr for RangeSpec {
     type Err = ExCommandError;
 
@@ -83,7 +82,10 @@ impl FromStr for RangeSpec {
         match s {
             "." => Ok(RangeSpec::CurrentLine),
             "$" => Ok(RangeSpec::LastLine),
-            _ if s.starts_with('\'') && s.len() == 2 => {
+            _ if s.starts_with('\'') => {
+                if s.len() < 2 {
+                    return Err(ExCommandError::InvalidRange("Invalid mark: missing character after '".to_string()));
+                }
                 let mark = s.chars().nth(1).unwrap();
                 Ok(RangeSpec::Mark(mark))
             },
@@ -308,6 +310,13 @@ impl ExCommandParser {
                 '.' | '$' | '\'' | '/' | '?' | '+' | '-' | '0'..='9' | ',' | ';' => {
                     range_str.push(c);
                     chars.next();
+                    
+                    // If we just added a single quote, we need to add the next character too
+                    if c == '\'' && chars.peek().is_some() {
+                        if let Some(mark_char) = chars.next() {
+                            range_str.push(mark_char);
+                        }
+                    }
                 },
                 _ => break,
             }
@@ -565,6 +574,9 @@ mod tests {
         assert_eq!(range.start.unwrap(), RangeSpec::Mark('a'));
         assert_eq!(range.end.unwrap(), RangeSpec::Mark('b'));
         assert_eq!(rest, "write");
+        
+        // Add a debug print to see what's happening
+        println!("Test completed successfully");
     }
     
     #[test]

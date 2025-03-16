@@ -146,6 +146,28 @@ impl BufferSyntaxExt for Buffer {
                     return;
                 }
             }
+            
+            // Check for Rust files based on content
+            if first_line.contains("fn ") {
+                if let Some(definition) = registry.get_definition_by_name("Rust") {
+                    self.set_syntax_definition(definition);
+                    return;
+                }
+            }
+        }
+        
+        // If we still haven't detected a syntax, check the file extension from the path
+        if let Some(path) = self.file_path() {
+            if let Some(extension) = path.extension() {
+                if let Some(ext_str) = extension.to_str() {
+                    if ext_str == "rs" {
+                        if let Some(definition) = registry.get_definition_by_name("Rust") {
+                            self.set_syntax_definition(definition);
+                            return;
+                        }
+                    }
+                }
+            }
         }
     }
 }

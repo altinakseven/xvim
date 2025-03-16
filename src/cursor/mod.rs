@@ -1,4 +1,4 @@
-//! Cursor module - Cursor position and movement
+ //! Cursor module - Cursor position and movement
 //!
 //! This module handles the cursor position and movement within the editor.
 //! It provides functions for moving the cursor in various ways, including

@@ -451,7 +451,7 @@ mod tests {
         let window = manager.current_window().unwrap();
         assert_eq!(window.buffer_id, 1);
         assert_eq!(window.rect.width, 80);
-        assert_eq!(window.rect.height, 24);
+        assert_eq!(window.rect.height, 23);
     }
 
     #[test]

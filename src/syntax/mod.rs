@@ -267,10 +267,17 @@ impl SyntaxHighlighter {
 
         // Apply each rule in order
         for rule in &self.definition.rules {
-            for mat in rule.pattern.find_iter(line) {
-                let start = mat.start();
-                let end = mat.end();
-                let text = mat.as_str().to_string();
+            for cap in rule.pattern.captures_iter(line) {
+                // If there are capture groups, use the first one
+                let (start, end, text) = if cap.len() > 1 {
+                    // Get the first capture group
+                    let m = cap.get(1).unwrap();
+                    (m.start(), m.end(), m.as_str().to_string())
+                } else {
+                    // Use the entire match
+                    let m = cap.get(0).unwrap();
+                    (m.start(), m.end(), m.as_str().to_string())
+                };
 
                 // Check if this range has already been processed
                 let already_processed = (start..end).any(|i| i < processed.len() && processed[i]);
@@ -290,12 +297,19 @@ impl SyntaxHighlighter {
             }
         }
 
-        // Add any unprocessed text as default tokens
+        // Add any unprocessed text as default tokens, skipping whitespace
         let mut start = 0;
         while start < line.len() {
             if !processed[start] {
+                // Skip whitespace
+                if line[start..].chars().next().unwrap().is_whitespace() {
+                    processed[start] = true;
+                    start += 1;
+                    continue;
+                }
+
                 let mut end = start + 1;
-                while end < line.len() && !processed[end] {
+                while end < line.len() && !processed[end] && !line[end..].chars().next().unwrap().is_whitespace() {
                     end += 1;
                 }
 
