@@ -65,8 +65,7 @@ impl Operator {
             '=' => Some(Operator::Format),
             'z' => Some(Operator::Fold),
             'Z' => Some(Operator::Unfold),
-            'g' => Some(Operator::ToUpper), // This is actually 'gU', but we'll handle the 'U' separately
-            'g' => Some(Operator::ToLower), // This is actually 'gu', but we'll handle the 'u' separately
+            'g' => Some(Operator::ToUpper), // This is actually 'gU' or 'gu', but we'll handle the 'U'/'u' separately
             '~' => Some(Operator::SwapCase),
             '!' => Some(Operator::Filter),
             _ => None,

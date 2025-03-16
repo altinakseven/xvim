@@ -312,12 +312,26 @@ fn test_vglobal_command() {
     // Create a command parser
     let parser = ExCommandParser::new();
     
-    // Execute the :vglobal command
+    // Execute the :vglobal command to delete lines that don't contain "Line 2"
     let cmd = parser.parse("vglobal/Line 2/delete").unwrap();
     let result = registry.execute(&cmd);
     
     // Check the result
     assert!(result.is_ok(), "Failed to execute :vglobal command: {:?}", result);
+    
+    // Verify that only Line 2 remains in the buffer (plus possibly an empty line at the end)
+    let buffer = editor.get_buffer_manager().get_buffer(buffer_id).unwrap();
+    
+    // The buffer might have 1 or 2 lines (if there's a trailing newline)
+    assert!(buffer.line_count() <= 2, "Expected 1-2 lines to remain, but found {}", buffer.line_count());
+    
+    // Check that the first line is "Line 2"
+    assert_eq!(buffer.line(0).unwrap(), "Line 2", "Expected 'Line 2' to remain, but found '{}'", buffer.line(0).unwrap());
+    
+    // If there's a second line, it should be empty (just a newline)
+    if buffer.line_count() > 1 {
+        assert_eq!(buffer.line(1).unwrap(), "", "Expected empty line, but found '{}'", buffer.line(1).unwrap());
+    }
     
     println!("  :vglobal command test passed");
 }
@@ -435,6 +449,118 @@ fn test_registers_command() {
     println!("  :registers command test passed");
 }
 
+/// Test the :normal command
+fn test_normal_command() {
+    println!("Testing :normal command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a buffer with some content
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
+    editor.insert_text("Line 1\nLine 2\nLine 3\n").unwrap();
+    
+    // Move cursor to the beginning
+    editor.get_cursor_manager_mut().set_position(xvim::cursor::CursorPosition::new(0, 0));
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // Execute the :normal command to move down and delete a line
+    let cmd = parser.parse("normal jdd").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :normal command: {:?}", result);
+    
+    // Verify the buffer content
+    let buffer = editor.get_buffer_manager().get_buffer(buffer_id).unwrap();
+    assert_eq!(buffer.content(), "Line 1\nLine 3\n");
+    
+    println!("  :normal command test passed");
+}
+
+/// Test the :sort command
+fn test_sort_command() {
+    println!("Testing :sort command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a buffer with some unsorted content
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
+    editor.insert_text("c\na\nb\n").unwrap();
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // Execute the :sort command
+    let cmd = parser.parse("sort").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :sort command: {:?}", result);
+    
+    // Verify the buffer content
+    let buffer = editor.get_buffer_manager().get_buffer(buffer_id).unwrap();
+    assert_eq!(buffer.content(), "a\nb\nc\n");
+    
+    println!("  :sort command test passed");
+}
+
+/// Test the :cd command
+fn test_cd_command() {
+    println!("Testing :cd command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // Get the current directory
+    let current_dir = std::env::current_dir().unwrap();
+    
+    // Execute the :cd command to change to the parent directory
+    let cmd = parser.parse("cd ..").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :cd command: {:?}", result);
+    
+    // Check that the directory was changed
+    let new_dir = std::env::current_dir().unwrap();
+    assert_ne!(current_dir, new_dir);
+    
+    // Change back to the original directory
+    std::env::set_current_dir(current_dir).unwrap();
+    
+    println!("  :cd command test passed");
+}
+
 /// Test the :buffers command
 fn test_buffers_command() {
     println!("Testing :buffers command...");
@@ -466,6 +592,99 @@ fn test_buffers_command() {
     println!("  :buffers command test passed");
 }
 
+/// Test the :undo command
+fn test_undo_command() {
+    println!("Testing :undo command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a buffer with some content
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
+    
+    // Insert the initial text
+    editor.insert_text("Initial text").unwrap();
+    
+    // Sleep for a bit to force a new change group (the change history groups changes that occur within 500ms)
+    std::thread::sleep(std::time::Duration::from_millis(600));
+    
+    // Make a change to the buffer
+    editor.insert_text(" with more content").unwrap();
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // Execute the :undo command
+    let cmd = parser.parse("undo").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :undo command: {:?}", result);
+    
+    // Verify the buffer content
+    let buffer = editor.get_buffer_manager().get_buffer(buffer_id).unwrap();
+    assert_eq!(buffer.content(), "Initial text", "Expected 'Initial text', but got '{}'", buffer.content());
+    
+    println!("  :undo command test passed");
+}
+
+/// Test the :redo command
+fn test_redo_command() {
+    println!("Testing :redo command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a buffer with some content
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
+    
+    // Insert the initial text
+    editor.insert_text("Initial text").unwrap();
+    
+    // Sleep for a bit to force a new change group (the change history groups changes that occur within 500ms)
+    std::thread::sleep(std::time::Duration::from_millis(600));
+    
+    // Make a change to the buffer
+    editor.insert_text(" with more content").unwrap();
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // First undo the change
+    let undo_cmd = parser.parse("undo").unwrap();
+    let undo_result = registry.execute(&undo_cmd);
+    assert!(undo_result.is_ok(), "Failed to execute :undo command: {:?}", undo_result);
+    
+    // Then execute the :redo command
+    let redo_cmd = parser.parse("redo").unwrap();
+    let redo_result = registry.execute(&redo_cmd);
+    
+    // Check the result
+    assert!(redo_result.is_ok(), "Failed to execute :redo command: {:?}", redo_result);
+    
+    // Verify the buffer content
+    let buffer = editor.get_buffer_manager().get_buffer(buffer_id).unwrap();
+    assert_eq!(buffer.content(), "Initial text with more content");
+    
+    println!("  :redo command test passed");
+}
+
 /// Run all tests
 fn main() {
     println!("Running Ex command tests...");
@@ -483,12 +702,21 @@ fn main() {
     test_global_command();
     test_vglobal_command();
     
+    // Test undo/redo operations
+    test_undo_command();
+    test_redo_command();
+    
     // Test other operations
     test_set_command();
     test_map_command();
     test_unmap_command();
     test_registers_command();
     test_buffers_command();
+    
+    // Test our new commands
+    test_normal_command();
+    test_sort_command();
+    test_cd_command();
     
     println!("All tests passed!");
 }

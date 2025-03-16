@@ -1368,30 +1368,7 @@ impl Editor {
                 self.end_visual_mode()?;
             },
             
-            // Reselect previous visual area with 'gv' in normal mode
-            (Mode::Normal, KeyCode::Char('g')) => {
-                // Check if the next key is 'v'
-                if let Some(next_key) = self.terminal.poll_key(1000)? {
-                    if next_key.code == KeyCode::Char('v') {
-                        // Reselect previous visual area
-                        return self.reselect_visual_area();
-                    } else {
-                        // Not 'v', so handle as 'g' followed by another key
-                        if let Some(buffer_id) = self.current_buffer_id() {
-                            let buffer = self.buffer_manager.get_buffer(buffer_id)?;
-                            self.cursor_manager.move_cursor(Direction::BufferStart, buffer)?;
-                        }
-                        // Process the next key
-                        return self.process_key_legacy(next_key);
-                    }
-                } else {
-                    // No next key, just handle as 'g'
-                    if let Some(buffer_id) = self.current_buffer_id() {
-                        let buffer = self.buffer_manager.get_buffer(buffer_id)?;
-                        self.cursor_manager.move_cursor(Direction::BufferStart, buffer)?;
-                    }
-                }
-            },
+            // This case is handled by the first (Mode::Normal, KeyCode::Char('g')) pattern at line 1301
             
             // Swap visual corners with 'o' in visual mode
             (mode, KeyCode::Char('o')) if mode.is_visual() => {
@@ -1880,8 +1857,7 @@ impl Editor {
             // Convert cursor position to character index
             let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
             
-            let text_object = self.find_text_object_internal(buffer, cursor_position, object_type, include_delimiters);
-            Ok(text_object)
+            self.find_text_object_internal(buffer, cursor_position, object_type, include_delimiters)
         } else {
             Ok(None)
         }
@@ -1898,7 +1874,7 @@ impl Editor {
             // Convert cursor position to character index
             let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
             
-            if let Some(text_object) = self.find_text_object_internal(buffer, cursor_position, object_type, include_delimiters) {
+            if let Some(text_object) = self.find_text_object_internal(buffer, cursor_position, object_type, include_delimiters)? {
                 // Get the text from the buffer before deleting it
                 let content = buffer.content();
                 if text_object.start < content.len() && text_object.end <= content.len() {
@@ -1934,7 +1910,7 @@ impl Editor {
             // Convert cursor position to character index
             let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
             
-            if let Some(text_object) = self.find_text_object_internal(buffer, cursor_position, object_type, include_delimiters) {
+            if let Some(text_object) = self.find_text_object_internal(buffer, cursor_position, object_type, include_delimiters)? {
                 // Get the text from the buffer before deleting it
                 let content = buffer.content();
                 if text_object.start < content.len() && text_object.end <= content.len() {
@@ -1974,7 +1950,7 @@ impl Editor {
             // Convert cursor position to character index
             let cursor_position = buffer.position_to_char_idx(cursor_pos.line, cursor_pos.column)?;
             
-            match self.find_text_object_internal(buffer, cursor_position, object_type, include_delimiters) {
+            match self.find_text_object_internal(buffer, cursor_position, object_type, include_delimiters)? {
                 Some(text_object) => {
                     // Get the text from the buffer
                     let content = buffer.content();
@@ -2056,9 +2032,8 @@ impl Editor {
             Err(EditorError::Other("No buffer selected".to_string()))
         }
     }
-    
     /// Internal implementation of find_text_object
-    fn find_text_object_internal(&self, buffer: &crate::buffer::Buffer, position: usize, object_type: TextObjectType, include_delimiters: bool) -> Option<TextObject> {
+    fn find_text_object_internal(&self, buffer: &crate::buffer::Buffer, position: usize, object_type: TextObjectType, include_delimiters: bool) -> EditorResult<Option<TextObject>> {
         // Use the text_object module's find_text_object function
         // Convert from editor::TextObjectType to text_object::TextObjectType
         let text_object_type = match object_type {
@@ -2074,23 +2049,20 @@ impl Editor {
             TextObjectType::AngleBlock => TextObjectTypeExt::AngleBlock,
             TextObjectType::TagBlock => TextObjectTypeExt::TagBlock,
             TextObjectType::BacktickBlock => TextObjectTypeExt::BacktickBlock,
-            _ => return None, // Handle other cases
         };
         
-        let result = crate::text_object::find_text_object(buffer, position, text_object_type, include_delimiters);
+        let result = crate::text_object::find_text_object(buffer, position, text_object_type, include_delimiters)
+            .map_err(|err| EditorError::Buffer(err.into()))?;
         
-        match result {
-            Ok(Some(text_object_result)) => {
-                // Convert from text_object::TextObject to editor::TextObject
-                Some(TextObject {
-                    object_type,
-                    start: text_object_result.start,
-                    end: text_object_result.end,
-                    include_delimiters,
-                })
-            },
-            _ => None,
-        }
+        Ok(result.map(|text_object_result| {
+            // Convert from text_object::TextObject to editor::TextObject
+            TextObject {
+                object_type,
+                start: text_object_result.start,
+                end: text_object_result.end,
+                include_delimiters,
+            }
+        }))
     }
 
     // We don't need the binary feature version of find_text_object_internal anymore
@@ -3441,6 +3413,99 @@ impl Editor {
     pub fn move_line(&mut self, buffer_id: usize, source_line: usize, dest_line: usize) -> EditorResult<()> {
         // For now, just return Ok
         // In a real implementation, this would move the line
+        Ok(())
+    }
+    
+    /// Execute normal mode commands
+    pub fn execute_normal_mode_commands(&mut self, commands: &str) -> EditorResult<()> {
+        // Save the current mode
+        let original_mode = self.current_mode();
+        
+        // Enter normal mode
+        self.mode_manager.enter_normal_mode();
+        
+        // Process each character in the commands string
+        for c in commands.chars() {
+            // Convert the character to a key event
+            let key_event = match c {
+                // Basic characters
+                'a'..='z' | 'A'..='Z' | '0'..='9' => {
+                    crossterm::event::KeyEvent::new(
+                        crossterm::event::KeyCode::Char(c),
+                        crossterm::event::KeyModifiers::NONE
+                    )
+                },
+                // Special characters
+                ':' | '/' | '?' | '.' | ',' | ';' | '\'' | '"' | '[' | ']' | '{' | '}' | '(' | ')' |
+                '<' | '>' | '=' | '+' | '-' | '*' | '%' | '#' | '!' | '@' | '$' | '^' | '&' |
+                '_' | '~' | '`' | '\\' | '|' => {
+                    crossterm::event::KeyEvent::new(
+                        crossterm::event::KeyCode::Char(c),
+                        crossterm::event::KeyModifiers::NONE
+                    )
+                },
+                // Space
+                ' ' => {
+                    crossterm::event::KeyEvent::new(
+                        crossterm::event::KeyCode::Char(' '),
+                        crossterm::event::KeyModifiers::NONE
+                    )
+                },
+                // Enter
+                '\n' | '\r' => {
+                    crossterm::event::KeyEvent::new(
+                        crossterm::event::KeyCode::Enter,
+                        crossterm::event::KeyModifiers::NONE
+                    )
+                },
+                // Tab
+                '\t' => {
+                    crossterm::event::KeyEvent::new(
+                        crossterm::event::KeyCode::Tab,
+                        crossterm::event::KeyModifiers::NONE
+                    )
+                },
+                // Escape
+                '\x1b' => {
+                    crossterm::event::KeyEvent::new(
+                        crossterm::event::KeyCode::Esc,
+                        crossterm::event::KeyModifiers::NONE
+                    )
+                },
+                // Backspace
+                '\x08' => {
+                    crossterm::event::KeyEvent::new(
+                        crossterm::event::KeyCode::Backspace,
+                        crossterm::event::KeyModifiers::NONE
+                    )
+                },
+                // Delete
+                '\x7f' => {
+                    crossterm::event::KeyEvent::new(
+                        crossterm::event::KeyCode::Delete,
+                        crossterm::event::KeyModifiers::NONE
+                    )
+                },
+                // Unsupported character
+                _ => continue,
+            };
+            
+            // Process the key event
+            self.process_key(key_event)?;
+        }
+        
+        // Restore the original mode
+        match original_mode {
+            crate::mode::Mode::Normal => self.mode_manager.enter_normal_mode(),
+            crate::mode::Mode::Insert => self.mode_manager.enter_insert_mode(),
+            crate::mode::Mode::Command => self.mode_manager.enter_command_mode(),
+            crate::mode::Mode::Visual => self.mode_manager.enter_visual_mode(),
+            crate::mode::Mode::VisualLine => self.mode_manager.enter_visual_line_mode(),
+            crate::mode::Mode::VisualBlock => self.mode_manager.enter_visual_block_mode(),
+            crate::mode::Mode::OperatorPending => self.mode_manager.enter_operator_pending_mode(),
+            _ => self.mode_manager.enter_normal_mode(),
+        };
+        
         Ok(())
     }
 }

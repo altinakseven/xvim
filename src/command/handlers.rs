@@ -111,6 +111,13 @@ pub fn register_handlers(registry: &mut ExCommandRegistry, plugin_manager: Optio
     registry.register("help", make_handler(handle_help));
     registry.register("h", make_handler(handle_help));
     
+    // Additional commands
+    registry.register("cd", make_handler(handle_cd));
+    registry.register("chdir", make_handler(handle_cd));
+    registry.register("sort", make_handler(handle_sort));
+    registry.register("normal", make_handler(handle_normal));
+    registry.register("norm", make_handler(handle_normal));
+    
     // Register plugin commands if a plugin manager is provided
     if let Some(plugin_manager) = plugin_manager {
         crate::plugin::commands::register_plugin_commands(registry, plugin_manager);
@@ -1008,9 +1015,52 @@ fn handle_global(cmd: &ExCommand) -> ExCommandResult<()> {
         None => return Err(ExCommandError::InvalidCommand("No buffer to execute global command in".to_string())),
     };
     
-    // For now, just print a message
-    println!("Global command: pattern '{}', command '{}'", pattern, command);
-    println!("  (Global command execution not fully implemented yet)");
+    // Get a reference to the buffer
+    let buffer = editor.get_buffer_manager().get_buffer(buffer_id)?;
+    
+    // Create a command parser
+    let parser = crate::command::ExCommandParser::new();
+    
+    // Create a command registry
+    let mut registry = crate::command::ExCommandRegistry::new();
+    register_handlers(&mut registry, None);
+    
+    // Find lines that match the pattern
+    let mut matching_lines = Vec::new();
+    let line_count = buffer.line_count();
+    
+    for line_idx in 0..line_count {
+        let line = buffer.line(line_idx)?;
+        
+        // Check if the line matches the pattern
+        if line.contains(pattern) {
+            matching_lines.push(line_idx);
+        }
+    }
+    
+    // Execute the command on each matching line
+    // We need to process lines in reverse order to handle the case where we're deleting lines
+    // This ensures that line numbers remain valid even after deletions
+    let mut count = 0;
+    for line_idx in matching_lines.iter().rev() {
+        // Set the cursor to the matching line
+        editor.get_cursor_manager_mut().set_position(crate::cursor::CursorPosition::new(*line_idx, 0));
+        
+        // Parse and execute the command
+        match parser.parse(command) {
+            Ok(ex_cmd) => {
+                if let Err(err) = registry.execute(&ex_cmd) {
+                    return Err(ExCommandError::Other(format!("Failed to execute command on line {}: {}", line_idx + 1, err)));
+                }
+                count += 1;
+            },
+            Err(err) => {
+                return Err(ExCommandError::Other(format!("Failed to parse command: {}", err)));
+            }
+        }
+    }
+    
+    println!("{} line{} processed", count, if count == 1 { "" } else { "s" });
     
     Ok(())
 }
@@ -1059,9 +1109,52 @@ fn handle_vglobal(cmd: &ExCommand) -> ExCommandResult<()> {
         None => return Err(ExCommandError::InvalidCommand("No buffer to execute vglobal command in".to_string())),
     };
     
-    // For now, just print a message
-    println!("Vglobal command: pattern '{}', command '{}'", pattern, command);
-    println!("  (Vglobal command execution not fully implemented yet)");
+    // Get a reference to the buffer
+    let buffer = editor.get_buffer_manager().get_buffer(buffer_id)?;
+    
+    // Create a command parser
+    let parser = crate::command::ExCommandParser::new();
+    
+    // Create a command registry
+    let mut registry = crate::command::ExCommandRegistry::new();
+    register_handlers(&mut registry, None);
+    
+    // Find lines that don't match the pattern
+    let mut non_matching_lines = Vec::new();
+    let line_count = buffer.line_count();
+    
+    for line_idx in 0..line_count {
+        let line = buffer.line(line_idx)?;
+        
+        // Check if the line doesn't match the pattern
+        if !line.contains(pattern) {
+            non_matching_lines.push(line_idx);
+        }
+    }
+    
+    // Execute the command on each non-matching line
+    // We need to process lines in reverse order to handle the case where we're deleting lines
+    // This ensures that line numbers remain valid even after deletions
+    let mut count = 0;
+    for line_idx in non_matching_lines.iter().rev() {
+        // Set the cursor to the non-matching line
+        editor.get_cursor_manager_mut().set_position(crate::cursor::CursorPosition::new(*line_idx, 0));
+        
+        // Parse and execute the command
+        match parser.parse(command) {
+            Ok(ex_cmd) => {
+                if let Err(err) = registry.execute(&ex_cmd) {
+                    return Err(ExCommandError::Other(format!("Failed to execute command on line {}: {}", line_idx + 1, err)));
+                }
+                count += 1;
+            },
+            Err(err) => {
+                return Err(ExCommandError::Other(format!("Failed to parse command: {}", err)));
+            }
+        }
+    }
+    
+    println!("{} line{} processed", count, if count == 1 { "" } else { "s" });
     
     Ok(())
 }
@@ -1069,35 +1162,67 @@ fn handle_vglobal(cmd: &ExCommand) -> ExCommandResult<()> {
 /// Handle the :undo command
 fn handle_undo(_cmd: &ExCommand) -> ExCommandResult<()> {
     // Get the editor reference
-    let _editor = unsafe {
+    let editor = unsafe {
         match EDITOR {
             Some(editor_ptr) => &mut *editor_ptr,
             None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
         }
     };
     
-    // Print a simple message for now
-    println!("Undo: changes undone");
-    println!("  (Undo functionality not fully implemented yet)");
+    // Get the current buffer ID
+    let buffer_id = match editor.current_buffer_id() {
+        Some(id) => id,
+        None => return Err(ExCommandError::InvalidCommand("No buffer to undo changes in".to_string())),
+    };
     
-    Ok(())
+    // Get a mutable reference to the buffer
+    let buffer = editor.get_buffer_manager_mut().get_buffer_mut(buffer_id)?;
+    
+    // Perform the undo operation
+    match buffer.undo() {
+        Ok(true) => {
+            println!("1 change undone");
+            Ok(())
+        },
+        Ok(false) => {
+            println!("No changes to undo");
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to undo changes: {}", err))),
+    }
 }
 
 /// Handle the :redo command
 fn handle_redo(_cmd: &ExCommand) -> ExCommandResult<()> {
     // Get the editor reference
-    let _editor = unsafe {
+    let editor = unsafe {
         match EDITOR {
             Some(editor_ptr) => &mut *editor_ptr,
             None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
         }
     };
     
-    // Print a simple message for now
-    println!("Redo: changes redone");
-    println!("  (Redo functionality not fully implemented yet)");
+    // Get the current buffer ID
+    let buffer_id = match editor.current_buffer_id() {
+        Some(id) => id,
+        None => return Err(ExCommandError::InvalidCommand("No buffer to redo changes in".to_string())),
+    };
     
-    Ok(())
+    // Get a mutable reference to the buffer
+    let buffer = editor.get_buffer_manager_mut().get_buffer_mut(buffer_id)?;
+    
+    // Perform the redo operation
+    match buffer.redo() {
+        Ok(true) => {
+            println!("1 change redone");
+            Ok(())
+        },
+        Ok(false) => {
+            println!("No changes to redo");
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to redo changes: {}", err))),
+    }
 }
 
 /// Handle the :set command
@@ -1616,4 +1741,159 @@ fn handle_help(cmd: &ExCommand) -> ExCommandResult<()> {
     }
     
     Ok(())
+}
+
+/// Handle the :cd command
+fn handle_cd(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Get the directory path from the command arguments
+    let dir_path = if let Some(path) = cmd.first_arg() {
+        std::path::PathBuf::from(path)
+    } else {
+        // If no path is provided, use the home directory
+        match dirs::home_dir() {
+            Some(path) => path,
+            None => return Err(ExCommandError::InvalidCommand("Could not determine home directory".to_string())),
+        }
+    };
+    
+    // Change the current directory
+    match std::env::set_current_dir(&dir_path) {
+        Ok(_) => {
+            // Get the absolute path to display
+            match std::env::current_dir() {
+                Ok(abs_path) => {
+                    println!("Current directory: {}", abs_path.display());
+                    Ok(())
+                },
+                Err(err) => Err(ExCommandError::Other(format!("Failed to get current directory: {}", err))),
+            }
+        },
+        Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to change directory: {}", err))),
+    }
+}
+
+/// Handle the :sort command
+fn handle_sort(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Get the current buffer ID
+    let buffer_id = match editor.current_buffer_id() {
+        Some(id) => id,
+        None => return Err(ExCommandError::InvalidCommand("No buffer to sort".to_string())),
+    };
+    
+    // Get a mutable reference to the buffer
+    let buffer = editor.get_buffer_manager_mut().get_buffer_mut(buffer_id)?;
+    
+    // Parse the range from the command
+    // For now, we'll sort the entire buffer
+    let start_line = 0;
+    let end_line = buffer.line_count() - 1;
+    
+    // Get the lines to sort
+    let mut lines = Vec::new();
+    for line_idx in start_line..=end_line {
+        match buffer.line(line_idx) {
+            Ok(line) => lines.push(line),
+            Err(err) => return Err(ExCommandError::Other(format!("Failed to get line {}: {}", line_idx, err))),
+        }
+    }
+    
+    // Parse the sort options
+    let args = cmd.args_str();
+    let ignore_case = args.contains('i');
+    let numeric = args.contains('n');
+    let reverse = args.contains('r');
+    
+    // Sort the lines
+    if numeric {
+        // Numeric sort
+        lines.sort_by(|a, b| {
+            let a_num = a.parse::<f64>().unwrap_or(f64::MAX);
+            let b_num = b.parse::<f64>().unwrap_or(f64::MAX);
+            if reverse {
+                b_num.partial_cmp(&a_num).unwrap_or(std::cmp::Ordering::Equal)
+            } else {
+                a_num.partial_cmp(&b_num).unwrap_or(std::cmp::Ordering::Equal)
+            }
+        });
+    } else if ignore_case {
+        // Case-insensitive sort
+        if reverse {
+            lines.sort_by(|a, b| b.to_lowercase().cmp(&a.to_lowercase()));
+        } else {
+            lines.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+        }
+    } else {
+        // Regular sort
+        if reverse {
+            lines.sort_by(|a, b| b.cmp(a));
+        } else {
+            lines.sort();
+        }
+    }
+    
+    // Replace the lines in the buffer
+    // First, delete all the lines in the range
+    let start_char_idx = buffer.position_to_char_idx(start_line, 0)?;
+    let end_char_idx = if end_line + 1 < buffer.line_count() {
+        buffer.position_to_char_idx(end_line + 1, 0)?
+    } else {
+        buffer.content().len()
+    };
+    
+    buffer.delete(start_char_idx, end_char_idx)?;
+    
+    // Then insert the sorted lines
+    let mut insert_text = lines.join("\n");
+    if end_line + 1 < buffer.line_count() {
+        // If we're not at the end of the buffer, add a newline
+        insert_text.push('\n');
+    }
+    
+    buffer.insert(start_char_idx, &insert_text)?;
+    
+    println!("{} lines sorted", lines.len());
+    Ok(())
+}
+
+/// Handle the :normal command
+fn handle_normal(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Get the normal mode commands to execute
+    let normal_cmds = cmd.args_str();
+    
+    if normal_cmds.is_empty() {
+        return Err(ExCommandError::MissingArgument("Normal mode commands required".to_string()));
+    }
+    
+    // Execute the normal mode commands
+    match editor.execute_normal_mode_commands(&normal_cmds) {
+        Ok(_) => {
+            println!("Normal mode commands executed");
+            Ok(())
+        },
+        Err(err) => Err(ExCommandError::Other(format!("Failed to execute normal mode commands: {}", err))),
+    }
 }
