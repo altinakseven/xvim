@@ -6,6 +6,7 @@
 
 use std::collections::HashMap;
 use crossterm::event::KeyEvent;
+use std::fs::File;
 
 /// Register types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

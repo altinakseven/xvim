@@ -3,7 +3,11 @@
 //! This module implements the state machine for Vim's modal editing system,
 //! including normal, insert, visual, and command modes.
 
+pub mod normal_commands;
+
 use std::fmt;
+use crate::editor::Editor;
+use normal_commands::NormalCommandHandler;
 
 /// The different editor modes
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -84,14 +88,85 @@ pub struct ModeManager {
     current_mode: Mode,
     /// The previous mode (for returning from Command mode)
     previous_mode: Mode,
+    /// Normal mode command handler
+    normal_handler: NormalCommandHandler,
 }
 
 impl ModeManager {
+    /// Get a mutable reference to the normal command handler
+    pub fn get_normal_handler_mut(&mut self) -> &mut NormalCommandHandler {
+        &mut self.normal_handler
+    }
+    
+    /// Get a reference to the normal command handler
+    pub fn get_normal_handler(&self) -> &NormalCommandHandler {
+        &self.normal_handler
+    }
+
     /// Create a new mode manager
     pub fn new() -> Self {
         Self {
             current_mode: Mode::Normal,
             previous_mode: Mode::Normal,
+            normal_handler: NormalCommandHandler::new(),
+        }
+    }
+    
+    /// Handle a key press in the current mode
+    pub fn handle_key(&mut self, editor: &mut Editor, key: char) -> Result<(), String> {
+        match self.current_mode {
+            Mode::Normal => {
+                // Handle normal mode keys using the normal command handler
+                match self.normal_handler.handle_key(editor, key) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Error handling key in normal mode: {}", e)),
+                }
+            },
+            Mode::Insert => {
+                // Insert the character
+                match editor.insert_char(key) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Error inserting character: {}", e)),
+                }
+            },
+            Mode::Visual | Mode::VisualLine | Mode::VisualBlock => {
+                // Handle visual mode keys
+                // For now, just pass the key to the normal command handler
+                // In the future, we'll need a dedicated visual mode handler
+                match self.normal_handler.handle_key(editor, key) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Error handling key in visual mode: {}", e)),
+                }
+            },
+            Mode::Command => {
+                // Add the character to the command line
+                match editor.add_to_command_line(key) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Error adding to command line: {}", e)),
+                }
+            },
+            Mode::Replace => {
+                // Replace the character under the cursor
+                match editor.replace_char(key) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Error replacing character: {}", e)),
+                }
+            },
+            Mode::Terminal => {
+                // Send the character to the terminal
+                match editor.send_to_terminal(key) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Error sending to terminal: {}", e)),
+                }
+            },
+            Mode::OperatorPending => {
+                // Handle operator-pending mode keys
+                // This should be handled by the normal command handler
+                match self.normal_handler.handle_key(editor, key) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Error handling key in operator-pending mode: {}", e)),
+                }
+            },
         }
     }
     
@@ -208,5 +283,31 @@ mod tests {
         assert!(Mode::Insert.is_insert());
         assert!(Mode::Replace.is_insert());
         assert!(!Mode::Normal.is_insert());
+    }
+    
+    #[test]
+    fn test_handle_key() {
+        let mut manager = ModeManager::new();
+        let mut editor = Editor::new().unwrap();
+        
+        // Create a buffer
+        let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+        editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
+        
+        // Test normal mode key handling
+        manager.enter_normal_mode();
+        assert!(manager.handle_key(&mut editor, 'j').is_ok());
+        
+        // Test insert mode key handling
+        manager.enter_insert_mode();
+        assert!(manager.handle_key(&mut editor, 'a').is_ok());
+        
+        // Test command mode key handling
+        manager.enter_command_mode();
+        assert!(manager.handle_key(&mut editor, 'w').is_ok());
+        
+        // Test visual mode key handling
+        manager.enter_visual_mode();
+        assert!(manager.handle_key(&mut editor, 'j').is_ok());
     }
 }

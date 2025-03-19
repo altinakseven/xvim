@@ -685,6 +685,180 @@ fn test_redo_command() {
     println!("  :redo command test passed");
 }
 
+/// Test the :file command
+fn test_file_command() {
+    println!("Testing :file command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a buffer
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // Execute the :file command to set a file name
+    let cmd = parser.parse("file test_file.txt").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :file command: {:?}", result);
+    
+    // Check that the file name was set
+    let buffer_name = editor.get_buffer_manager().get_buffer_name(buffer_id);
+    assert_eq!(buffer_name, Some("test_file.txt".to_string()));
+    
+    // Execute the :file command without arguments to display the file name
+    let cmd = parser.parse("file").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :file command: {:?}", result);
+    
+    println!("  :file command test passed");
+}
+
+/// Test the :pwd command
+fn test_pwd_command() {
+    println!("Testing :pwd command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // Execute the :pwd command
+    let cmd = parser.parse("pwd").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :pwd command: {:?}", result);
+    
+    println!("  :pwd command test passed");
+}
+
+/// Test the :bdelete command
+fn test_bdelete_command() {
+    println!("Testing :bdelete command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a buffer
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
+    
+    // Create a second buffer to switch to after deleting the first
+    let second_buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // Switch to the second buffer
+    editor.get_buffer_manager_mut().set_current_buffer(second_buffer_id).unwrap();
+    
+    // Execute the :bdelete command with a specific buffer ID
+    let cmd = parser.parse(format!("bdelete {}", buffer_id)).unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :bdelete command: {:?}", result);
+    
+    // Check that the buffer was deleted
+    assert!(editor.get_buffer_manager().get_buffer(buffer_id).is_err());
+    
+    println!("  :bdelete command test passed");
+}
+
+/// Test the :nohlsearch command
+fn test_nohlsearch_command() {
+    println!("Testing :nohlsearch command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a buffer
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // Execute the :nohlsearch command
+    let cmd = parser.parse("nohlsearch").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :nohlsearch command: {:?}", result);
+    
+    println!("  :nohlsearch command test passed");
+}
+
+/// Test the :args command
+fn test_args_command() {
+    println!("Testing :args command...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Set the editor reference in the handlers
+    handlers::set_editor(&mut editor);
+    
+    // Create a command registry
+    let mut registry = ExCommandRegistry::new();
+    handlers::register_handlers(&mut registry, None);
+    
+    // Create a command parser
+    let parser = ExCommandParser::new();
+    
+    // Execute the :args command to set the argument list
+    let cmd = parser.parse("args file1.txt file2.txt file3.txt").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :args command: {:?}", result);
+    
+    // Execute the :args command without arguments to display the argument list
+    let cmd = parser.parse("args").unwrap();
+    let result = registry.execute(&cmd);
+    
+    // Check the result
+    assert!(result.is_ok(), "Failed to execute :args command: {:?}", result);
+    
+    println!("  :args command test passed");
+}
+
 /// Run all tests
 fn main() {
     println!("Running Ex command tests...");
@@ -692,6 +866,7 @@ fn main() {
     // Test file operations
     test_write_command();
     test_read_command();
+    test_file_command();
     
     // Test editing operations
     test_yank_command();
@@ -712,11 +887,15 @@ fn main() {
     test_unmap_command();
     test_registers_command();
     test_buffers_command();
+    test_bdelete_command();
     
     // Test our new commands
     test_normal_command();
     test_sort_command();
     test_cd_command();
+    test_pwd_command();
+    test_nohlsearch_command();
+    test_args_command();
     
     println!("All tests passed!");
 }

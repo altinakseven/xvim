@@ -8,11 +8,22 @@
 - Public APIs are thoroughly documented with rustdoc comments
 - Complex algorithms include explanatory comments about their approach
 
+### Vim Integration
+- Runtime files follow Vim's directory structure and naming conventions
+- Syntax highlighting definitions are compatible with Vim's syntax files
+- Filetype detection uses the same patterns as Vim
+- Configuration files use Vim's configuration format where possible
+- All changes maintain Vim compatibility unless explicitly noted as extensions
+
 ### Development Workflow
 - New features start with test cases that define expected behavior
 - Implementation follows test-driven development principles
 - Performance-critical code includes benchmarks
 - All changes maintain Vim compatibility unless explicitly noted as extensions
+- Auto-allowed commands are configured in settings to streamline development:
+  - All cargo commands (cargo build, cargo test, cargo run, etc.)
+  - File system navigation commands (ls, ls -la, cd)
+  - File operations commands (cp)
 
 ### Documentation Practices
 - Code documentation uses rustdoc format

@@ -1,8 +1,11 @@
 //! xvim - A ground-up rewrite of the Vim text editor in pure Rust with a WASM plugin system
 
 use clap::Parser;
+// use std::fs::File;
 use log::{info, LevelFilter};
+// use std::fs::File;
 use xvim::editor;
+// use std::fs::File;
 
 /// Command line arguments for xvim
 #[derive(Parser, Debug)]

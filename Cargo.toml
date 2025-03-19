@@ -34,6 +34,8 @@ toml = "0.7.2"            # TOML parsing and serialization
 dirs = "5.0.1"            # Finding standard directories
 log = "0.4.17"            # Logging infrastructure
 clap = { version = "4.1.4", features = ["derive"] }  # Command-line argument parsing
+glob = "0.3.1"            # Glob pattern matching
+bincode = "1.3.3"         # Binary serialization
 
 [dev-dependencies]
 proptest = "1.0.0"        # Property-based testing
@@ -52,5 +54,69 @@ integration-tests = []
 # harness = false
 
 [[bin]]
+name = "xvim"
+path = "src/main.rs"
+
+[[bin]]
+name = "simple_test"
+path = "tests/simple_test.rs"
+
+[[bin]]
+name = "search_test"
+path = "tests/search_test.rs"
+
+[[bin]]
+name = "visual_test"
+path = "tests/visual_test.rs"
+
+[[bin]]
+name = "typescript_syntax_test"
+path = "tests/typescript_syntax_test.rs"
+
+[[bin]]
+name = "vimscript_test"
+path = "tests/vimscript_test.rs"
+
+[[bin]]
+name = "operator_test"
+path = "tests/operator_test.rs"
+
+[[bin]]
+name = "macro_test"
+path = "tests/macro_test.rs"
+
+[[bin]]
+name = "register_test"
+path = "tests/register_test.rs"
+
+[[bin]]
+name = "mark_test"
+path = "tests/mark_test.rs"
+
+[[bin]]
+name = "colorscheme_test"
+path = "tests/colorscheme_test.rs"
+
+[[bin]]
+name = "insert_test"
+path = "tests/insert_test.rs"
+
+[[bin]]
+name = "syntax_test"
+path = "tests/syntax_test.rs"
+
+[[bin]]
+name = "text_object_test"
+path = "tests/text_object_test.rs"
+
+[[bin]]
+name = "command_test"
+path = "tests/command_test.rs"
+
+[[bin]]
 name = "ex_commands_test"
 path = "tests/ex_commands_test.rs"
+
+[[bin]]
+name = "normal_test"
+path = "tests/normal_test.rs"

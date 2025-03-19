@@ -4,17 +4,77 @@
 //! In the future, it will use wasmtime to execute WASM modules and provide a sandboxed environment
 //! for plugins to run in.
 
-use anyhow::{anyhow, Result};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use anyhow::{anyhow, Result};
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::path::PathBuf;
+use std::path::Path;
+use std::path::PathBuf;
 
 /// WASM plugin instance (placeholder)
 pub struct WasmPlugin {
     /// Plugin name
     name: String,
     /// Plugin path
-    path: std::path::PathBuf,
+    path: PathBuf,
 }
 
 /// WASM runtime for executing plugins (placeholder)
@@ -86,7 +146,7 @@ impl WasmRuntime {
     }
     
     /// Call a function in a plugin
-    pub fn call_function(&mut self, plugin_name: &str, function_name: &str, args: &[u8]) -> Result<Vec<u8>> {
+    pub fn call_function(&mut self, plugin_name: &str, _function_name: &str, _args: &[u8]) -> Result<Vec<u8>> {
         // Check if the plugin is loaded
         let _plugin = self.plugins.get(plugin_name)
             .ok_or_else(|| anyhow!("Plugin '{}' is not loaded", plugin_name))?;
@@ -97,7 +157,7 @@ impl WasmRuntime {
     }
     
     /// Call a command in a plugin
-    pub fn call_command(&mut self, plugin_name: &str, command_name: &str, args: &[&str]) -> Result<bool> {
+    pub fn call_command(&mut self, plugin_name: &str, command_name: &str, _args: &[&str]) -> Result<bool> {
         // Check if the plugin is loaded
         let _plugin = self.plugins.get(plugin_name)
             .ok_or_else(|| anyhow!("Plugin '{}' is not loaded", plugin_name))?;
@@ -112,7 +172,7 @@ impl WasmRuntime {
     }
     
     /// Send an event to all plugins
-    pub fn send_event(&mut self, event: &super::events::EventType) -> Result<()> {
+    pub fn send_event(&mut self, _event: &super::events::EventType) -> Result<()> {
         // This is a placeholder implementation
         Ok(())
     }

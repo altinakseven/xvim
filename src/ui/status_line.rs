@@ -4,6 +4,7 @@
 //! displaying information about the current buffer, cursor position, and editor state.
 
 use std::io::{self, Write};
+// use std::fs::File;
 use std::path::Path;
 use crossterm::{
     cursor,
@@ -60,7 +61,7 @@ impl StatusLine {
         let file_name = buffer.name();
         let file_type = self.get_file_type(buffer);
         let encoding = "UTF-8"; // Assuming UTF-8 for now
-        let line_ending = "LF";  // Assuming LF for now
+        let _line_ending = "LF";  // Assuming LF for now
         
         // Get buffer state indicators
         let modified_indicator = if buffer.is_modified() { "[+]" } else { "" };

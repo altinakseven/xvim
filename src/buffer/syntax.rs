@@ -4,14 +4,11 @@
 //! allowing buffers to be displayed with syntax highlighting.
 
 use std::sync::Arc;
-use std::path::Path;
+use std::io::{BufReader, Read, Write};
+// use std::path::Path;
 
-use crate::buffer::Buffer;
-use crate::buffer::BufferResult;
+use crate::buffer::{Buffer, BufferResult};
 use crate::syntax::{SyntaxDefinition, SyntaxHighlighter, SyntaxRegistry, Theme, Token};
-use std::io::{BufReader, Read};
-use std::fs::File;
-use ropey::Rope;
 
 /// Extension trait to add syntax highlighting methods to Buffer
 pub trait BufferSyntaxExt {
@@ -176,7 +173,8 @@ impl BufferSyntaxExt for Buffer {
 mod tests {
     use super::*;
     use crate::syntax::{create_default_registry, create_default_theme, TokenType};
-    use std::sync::Arc;
+    // use std::fs::File;
+    use tempfile::NamedTempFile;
     
     #[test]
     fn test_buffer_syntax_highlighting() {
@@ -208,9 +206,6 @@ mod tests {
     
     #[test]
     fn test_auto_detect_syntax() {
-        use tempfile::NamedTempFile;
-        use std::io::Write;
-        
         // Create a temporary Rust file
         let mut temp_file = NamedTempFile::new().unwrap();
         writeln!(temp_file, "fn main() {{\n    println!(\"Hello, world!\");\n}}").unwrap();

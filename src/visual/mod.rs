@@ -9,7 +9,7 @@
 use crate::buffer::Buffer;
 use crate::cursor::CursorPosition;
 use crate::editor::{Editor, EditorError, EditorResult};
-use crate::mode::Mode;
+// // use crate::mode::Mode;
 use crate::selection::{SelectionManager, SelectionType};
 use std::cmp::{max, min};
 

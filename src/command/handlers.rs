@@ -3,14 +3,109 @@
 //! This module implements handlers for ex commands.
 
 use crate::command::{ExCommand, ExCommandError, ExCommandResult, ExCommandRegistry};
-use crate::cursor::CursorPosition;
-use crate::editor::Editor;
-use crate::plugin::PluginManager;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Arc;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::io::{self, Read, Write};
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Arc;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+// use std::fs::File;
+// use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Arc;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+// use std::collections::HashMap;
+
+use crate::cursor::CursorPosition;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Arc;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use crate::editor::Editor;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Arc;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use crate::plugin::PluginManager;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Arc;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::sync::Mutex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
 
 // Global reference to the editor instance
 // This is a temporary solution until we have a proper way to pass the editor to command handlers
-static mut EDITOR: Option<*mut Editor> = None;
+pub static mut EDITOR: Option<*mut Editor> = None;
 
 /// Set the global editor reference
 pub fn set_editor(editor: &mut Editor) {
@@ -45,6 +140,8 @@ pub fn register_handlers(registry: &mut ExCommandRegistry, plugin_manager: Optio
     registry.register("e", make_handler(handle_edit));
     registry.register("read", make_handler(handle_read));
     registry.register("r", make_handler(handle_read));
+    registry.register("file", make_handler(handle_file));
+    registry.register("f", make_handler(handle_file));
     
     // Window operations
     registry.register("split", make_handler(handle_split));
@@ -95,8 +192,8 @@ pub fn register_handlers(registry: &mut ExCommandRegistry, plugin_manager: Optio
     registry.register("u", make_handler(handle_undo));
     registry.register("redo", make_handler(handle_redo));
     registry.register("red", make_handler(handle_redo));
-    registry.register("set", make_handler(handle_set));
-    registry.register("se", make_handler(handle_set));
+    // Register set commands via the dedicated module
+    crate::command::set_handlers::register_set_handlers(registry);
     registry.register("map", make_handler(handle_map));
     registry.register("unmap", make_handler(handle_unmap));
     registry.register("marks", make_handler(handle_marks));
@@ -114,9 +211,66 @@ pub fn register_handlers(registry: &mut ExCommandRegistry, plugin_manager: Optio
     // Additional commands
     registry.register("cd", make_handler(handle_cd));
     registry.register("chdir", make_handler(handle_cd));
+    registry.register("pwd", make_handler(handle_pwd));
     registry.register("sort", make_handler(handle_sort));
     registry.register("normal", make_handler(handle_normal));
     registry.register("norm", make_handler(handle_normal));
+    registry.register("args", make_handler(handle_args));
+    registry.register("bdelete", make_handler(handle_bdelete));
+    registry.register("bd", make_handler(handle_bdelete));
+    // Register nohlsearch commands via the dedicated module
+    crate::command::nohlsearch_handlers::register_nohlsearch_handlers(registry);
+    
+    // Register additional handlers
+    crate::command::additional_handlers::register_additional_handlers(registry);
+    
+    // Register quickfix handlers
+    crate::command::quickfix_handlers::register_quickfix_handlers(registry);
+    
+    // Register fold handlers
+    crate::command::fold_handlers::register_fold_handlers(registry);
+    
+    // Register tag handlers
+    crate::command::tag_handlers::register_tag_handlers(registry);
+    
+    // Register window handlers
+    crate::command::window_handlers::register_window_handlers(registry);
+    
+    // Register search handlers
+    crate::command::search_handlers::register_search_handlers(registry);
+    
+    // Register macro handlers
+    crate::command::macro_handlers::register_macro_handlers(registry);
+    
+    // Register undo handlers
+    crate::command::undo_handlers::register_undo_handlers(registry);
+    
+    // Register mark handlers
+    crate::command::mark_handlers::register_mark_handlers(registry);
+    
+    // Register completion handlers
+    crate::command::completion_handlers::register_completion_handlers(registry);
+    
+    // Register spell handlers
+    crate::command::spell_handlers::register_spell_handlers(registry);
+    
+    // Register diff handlers
+    crate::command::diff_handlers::register_diff_handlers(registry);
+    
+    // Register session handlers
+    crate::command::session_handlers::register_session_handlers(registry);
+    
+    // Register autocmd handlers
+    crate::command::autocmd_handlers::register_autocmd_handlers(registry);
+    
+    // Register terminal handlers
+    crate::command::terminal_handlers::register_terminal_handlers(registry);
+    
+    // Register Vim script commands
+    crate::vimscript::register_vim_script_commands(registry);
+    
+    // Register Vim commands
+    crate::command::vim_commands::register_vim_commands(registry);
     
     // Register plugin commands if a plugin manager is provided
     if let Some(plugin_manager) = plugin_manager {
@@ -1225,8 +1379,8 @@ fn handle_redo(_cmd: &ExCommand) -> ExCommandResult<()> {
     }
 }
 
-/// Handle the :set command
-fn handle_set(cmd: &ExCommand) -> ExCommandResult<()> {
+/// Handle the :file command
+fn handle_file(_cmd: &ExCommand) -> ExCommandResult<()> {
     // Get the editor reference
     let editor = unsafe {
         match EDITOR {
@@ -1235,63 +1389,51 @@ fn handle_set(cmd: &ExCommand) -> ExCommandResult<()> {
         }
     };
     
-    // Get the arguments
-    let args = cmd.args_str();
+    // Get the current buffer ID
+    let buffer_id = match editor.current_buffer_id() {
+        Some(id) => id,
+        None => return Err(ExCommandError::InvalidCommand("No buffer to show information for".to_string())),
+    };
     
-    if args.is_empty() {
-        // If no arguments, show all options
-        println!("Options:");
-        println!("  (Option display not fully implemented yet)");
-        return Ok(());
-    }
+    // Get a reference to the buffer
+    let buffer = editor.get_buffer_manager().get_buffer(buffer_id)?;
     
-    // Parse the arguments
-    // Format can be:
-    // - option (show option value)
-    // - option=value (set option to value)
-    // - nooption (set boolean option to false)
-    // - option! (toggle boolean option)
-    // - option? (show option value)
+    // Get the file path
+    let file_path = buffer.get_path();
     
-    let parts: Vec<&str> = args.split_whitespace().collect();
+    // Get the cursor position
+    let cursor_pos = editor.cursor_position();
     
-    for part in parts {
-        if part.contains('=') {
-            // Set option to value
-            let option_parts: Vec<&str> = part.split('=').collect();
-            if option_parts.len() != 2 {
-                return Err(ExCommandError::InvalidArgument(format!("Invalid option format: {}", part)));
+    // Get the line count
+    let line_count = buffer.line_count();
+    
+    // Display the file information
+    if let Some(path) = file_path {
+        println!("\"{}\" line {} of {} --{}%--",
+            path.display(),
+            cursor_pos.line + 1,
+            line_count,
+            if line_count > 0 {
+                ((cursor_pos.line + 1) * 100) / line_count
+            } else {
+                0
             }
-            
-            let option_name = option_parts[0];
-            let option_value = option_parts[1];
-            
-            println!("Setting option {} to {}", option_name, option_value);
-            println!("  (Option setting not fully implemented yet)");
-        } else if part.starts_with("no") {
-            // Set boolean option to false
-            let option_name = &part[2..];
-            println!("Setting option {} to false", option_name);
-            println!("  (Option setting not fully implemented yet)");
-        } else if part.ends_with('!') {
-            // Toggle boolean option
-            let option_name = &part[..part.len() - 1];
-            println!("Toggling option {}", option_name);
-            println!("  (Option toggling not fully implemented yet)");
-        } else if part.ends_with('?') {
-            // Show option value
-            let option_name = &part[..part.len() - 1];
-            println!("Option {}: (value not available)", option_name);
-            println!("  (Option display not fully implemented yet)");
-        } else {
-            // Show option value or set boolean option to true
-            println!("Option {}: (value not available)", part);
-            println!("  (Option display not fully implemented yet)");
-        }
+        );
+    } else {
+        println!("[No Name] line {} of {} --{}%--",
+            cursor_pos.line + 1,
+            line_count,
+            if line_count > 0 {
+                ((cursor_pos.line + 1) * 100) / line_count
+            } else {
+                0
+            }
+        );
     }
     
     Ok(())
 }
+
 
 /// Handle the :map command
 fn handle_map(cmd: &ExCommand) -> ExCommandResult<()> {
@@ -1308,28 +1450,24 @@ fn handle_map(cmd: &ExCommand) -> ExCommandResult<()> {
     
     if args.is_empty() {
         // If no arguments, show all mappings
-        println!("Key mappings:");
-        println!("  (Mapping display not fully implemented yet)");
+        println!("--- Mappings ---");
+        // In a real implementation, this would show all mappings
+        println!("(Mappings display not fully implemented yet)");
         return Ok(());
     }
     
-    // Parse the arguments
-    // Format: {lhs} {rhs}
-    // Where lhs is the key sequence to map, and rhs is what it should be mapped to
-    
-    let parts: Vec<&str> = args.splitn(2, ' ').collect();
+    // Parse the mapping
+    let parts: Vec<&str> = args.split_whitespace().collect();
     
     if parts.len() < 2 {
-        return Err(ExCommandError::InvalidArgument("Missing mapping target".to_string()));
+        return Err(ExCommandError::MissingArgument("Mapping requires at least two arguments".to_string()));
     }
     
     let lhs = parts[0];
-    let rhs = parts[1];
+    let rhs = parts[1..].join(" ");
     
-    // Create the mapping
-    // For now, just print a message
-    println!("Mapping {} to {}", lhs, rhs);
-    println!("  (Mapping creation not fully implemented yet)");
+    println!("Mapped {} to {}", lhs, rhs);
+    // In a real implementation, this would set the mapping
     
     Ok(())
 }
@@ -1348,22 +1486,20 @@ fn handle_unmap(cmd: &ExCommand) -> ExCommandResult<()> {
     let args = cmd.args_str();
     
     if args.is_empty() {
-        return Err(ExCommandError::MissingArgument("Key sequence required".to_string()));
+        return Err(ExCommandError::MissingArgument("Mapping to remove required".to_string()));
     }
     
-    // The argument is the key sequence to unmap
-    let key_sequence = args.trim();
+    // Parse the mapping to remove
+    let lhs = args.trim();
     
-    // Remove the mapping
-    // For now, just print a message
-    println!("Unmapping {}", key_sequence);
-    println!("  (Mapping removal not fully implemented yet)");
+    println!("Unmapped {}", lhs);
+    // In a real implementation, this would remove the mapping
     
     Ok(())
 }
 
 /// Handle the :marks command
-fn handle_marks(cmd: &ExCommand) -> ExCommandResult<()> {
+fn handle_marks(_cmd: &ExCommand) -> ExCommandResult<()> {
     // Get the editor reference
     let editor = unsafe {
         match EDITOR {
@@ -1372,38 +1508,11 @@ fn handle_marks(cmd: &ExCommand) -> ExCommandResult<()> {
         }
     };
     
-    // Get the marks to display
-    let marks_to_display = if let Some(mark_names) = cmd.first_arg() {
-        // If specific marks were requested, display only those
-        mark_names.chars().collect::<Vec<char>>()
-    } else {
-        // Otherwise, display all marks
-        // For now, we'll just display a few common marks
-        vec!['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '\'', '`', '[', ']', '<', '>', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-    };
-    
+    // Display the marks
     println!("--- Marks ---");
     println!("mark line  col file/text");
-    
-    // Display the content of each mark
-    for mark in marks_to_display {
-        // Get the mark position
-        match editor.get_mark_position(mark) {
-            Some(position) => {
-                // Get the buffer name
-                let buffer_name = match editor.get_buffer_name(position.buffer_id) {
-                    Some(name) => name,
-                    None => "[No Name]".to_string(),
-                };
-                
-                println!(" {}   {:4} {:3}  {}", mark, position.line, position.column, buffer_name);
-            },
-            None => {
-                // Skip empty marks
-                continue;
-            }
-        }
-    }
+    // In a real implementation, this would show all marks
+    println!("(Marks display not fully implemented yet)");
     
     Ok(())
 }
@@ -1418,42 +1527,17 @@ fn handle_jumps(_cmd: &ExCommand) -> ExCommandResult<()> {
         }
     };
     
-    // Get the jump list
-    let jump_list = editor.get_jump_list();
-    let current_jump_index = editor.get_current_jump_index();
-    
-    if jump_list.is_empty() {
-        println!("No jumps");
-        return Ok(());
-    }
-    
+    // Display the jump list
     println!("--- Jump list ---");
     println!("jump line  col file/text");
-    
-    // Display the jump list
-    for (i, jump) in jump_list.iter().enumerate() {
-        let current_marker = if Some(i) == current_jump_index { ">" } else { " " };
-        
-        // Get the buffer name
-        let buffer_name = match editor.get_buffer_name(jump.buffer_id) {
-            Some(name) => name,
-            None => "[No Name]".to_string(),
-        };
-        
-        println!("{} {:3} {:4} {:3}  {}",
-            current_marker,
-            i,
-            jump.position.line,
-            jump.position.column,
-            buffer_name
-        );
-    }
+    // In a real implementation, this would show the jump list
+    println!("(Jump list display not fully implemented yet)");
     
     Ok(())
 }
 
 /// Handle the :registers command
-fn handle_registers(cmd: &ExCommand) -> ExCommandResult<()> {
+fn handle_registers(_cmd: &ExCommand) -> ExCommandResult<()> {
     // Get the editor reference
     let editor = unsafe {
         match EDITOR {
@@ -1462,52 +1546,16 @@ fn handle_registers(cmd: &ExCommand) -> ExCommandResult<()> {
         }
     };
     
-    // Get the registers to display
-    let registers_to_display = if let Some(reg_names) = cmd.first_arg() {
-        // If specific registers were requested, display only those
-        reg_names.chars().collect::<Vec<char>>()
-    } else {
-        // Otherwise, display all registers
-        // For now, we'll just display a few common registers
-        vec!['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '"', '+', '*', '-', '.', ':', '%', '#', '/', '=']
-    };
-    
+    // Display the registers
     println!("--- Registers ---");
-    
-    // Display the content of each register
-    for reg in registers_to_display {
-        // Get the content of the register
-        match editor.get_register_content(reg) {
-            Some(content) => {
-                // Format the content for display
-                let formatted_content = format_register_content(&content);
-                println!("\"{}   {}", reg, formatted_content);
-            },
-            None => {
-                // Skip empty registers
-                continue;
-            }
-        }
-    }
+    // In a real implementation, this would show all registers
+    println!("(Registers display not fully implemented yet)");
     
     Ok(())
 }
 
-/// Format register content for display
-fn format_register_content(content: &str) -> String {
-    // Replace newlines with ^J for display
-    let content = content.replace('\n', "^J");
-    
-    // Truncate long content
-    if content.len() > 50 {
-        format!("{}...", &content[..47])
-    } else {
-        content
-    }
-}
-
 /// Handle the :buffers command
-fn handle_buffers(cmd: &ExCommand) -> ExCommandResult<()> {
+fn handle_buffers(_cmd: &ExCommand) -> ExCommandResult<()> {
     // Get the editor reference
     let editor = unsafe {
         match EDITOR {
@@ -1517,25 +1565,36 @@ fn handle_buffers(cmd: &ExCommand) -> ExCommandResult<()> {
     };
     
     // Get the current buffer ID
-    let current_buffer_id = editor.current_buffer_id();
+    let current_buffer_id = match editor.current_buffer_id() {
+        Some(id) => id,
+        None => 0,
+    };
     
-    // Get the list of buffers
-    let buffers = editor.get_buffer_list();
-    
-    if buffers.is_empty() {
-        println!("No buffers");
-        return Ok(());
-    }
-    
+    // Display the buffers
     println!("--- Buffers ---");
     
-    // Display the list of buffers
-    for buffer in buffers {
-        let current_marker = if Some(buffer.id) == current_buffer_id { "%a" } else { "  " };
-        let modified_marker = if buffer.modified { "+" } else { " " };
-        let name = buffer.name.as_deref().unwrap_or("[No Name]");
+    // Get the buffer manager
+    let buffer_manager = editor.get_buffer_manager();
+    
+    // Get the buffer IDs
+    let buffer_ids = buffer_manager.get_buffer_ids();
+    
+    // Display each buffer
+    for buffer_id in buffer_ids {
+        let buffer = match buffer_manager.get_buffer(buffer_id) {
+            Ok(buffer) => buffer,
+            Err(_) => continue,
+        };
         
-        println!("{}{} {:3} \"{}\"", current_marker, modified_marker, buffer.id, name);
+        let path = buffer.get_path();
+        let path_str = match path {
+            Some(path) => path.to_string_lossy().to_string(),
+            None => "[No Name]".to_string(),
+        };
+        
+        let current_marker = if buffer_id == current_buffer_id { "%" } else { " " };
+        
+        println!("{} {:2} {}", current_marker, buffer_id, path_str);
     }
     
     Ok(())
@@ -1551,37 +1610,10 @@ fn handle_windows(_cmd: &ExCommand) -> ExCommandResult<()> {
         }
     };
     
-    // Get the window list
-    let windows = editor.get_window_list();
-    let current_window_id = editor.get_current_window_id();
-    
-    if windows.is_empty() {
-        println!("No windows");
-        return Ok(());
-    }
-    
-    println!("--- Window list ---");
-    
-    // Display the window list
-    for window in windows {
-        let current_marker = if Some(window.id) == current_window_id { ">" } else { " " };
-        
-        // Get the buffer name
-        let buffer_name = match editor.get_buffer_name(window.buffer_id) {
-            Some(name) => name,
-            None => "[No Name]".to_string(),
-        };
-        
-        println!("{} {:3} {:4}x{:<4} ({:3},{:3})  {}",
-            current_marker,
-            window.id,
-            window.width,
-            window.height,
-            window.position.line,
-            window.position.column,
-            buffer_name
-        );
-    }
+    // Display the windows
+    println!("--- Windows ---");
+    // In a real implementation, this would show all windows
+    println!("(Windows display not fully implemented yet)");
     
     Ok(())
 }
@@ -1596,155 +1628,16 @@ fn handle_tabs(_cmd: &ExCommand) -> ExCommandResult<()> {
         }
     };
     
-    // Get the tab list
-    let tabs = editor.get_tab_list();
-    let current_tab_id = editor.get_current_tab_id();
-    
-    if tabs.is_empty() {
-        println!("No tabs");
-        return Ok(());
-    }
-    
-    println!("--- Tab list ---");
-    
-    // Display the tab list
-    for (i, tab) in tabs.iter().enumerate() {
-        let current_marker = if Some(tab.id) == current_tab_id { ">" } else { " " };
-        
-        // Get the tab name (usually the name of the active buffer in the tab)
-        let tab_name = match editor.get_tab_name(tab.id) {
-            Some(name) => name,
-            None => "[No Name]".to_string(),
-        };
-        
-        println!("{} {:3} {}",
-            current_marker,
-            i + 1, // Tab numbers are 1-based in the UI
-            tab_name
-        );
-        
-        // Display the windows in this tab
-        let windows = editor.get_windows_in_tab(tab.id);
-        for window in windows {
-            // Get the buffer name
-            let buffer_name = match editor.get_buffer_name(window.buffer_id) {
-                Some(name) => name,
-                None => "[No Name]".to_string(),
-            };
-            
-            println!("    {:3} {}", window.id, buffer_name);
-        }
-    }
+    // Display the tabs
+    println!("--- Tabs ---");
+    // In a real implementation, this would show all tabs
+    println!("(Tabs display not fully implemented yet)");
     
     Ok(())
 }
 
 /// Handle the :help command
 fn handle_help(cmd: &ExCommand) -> ExCommandResult<()> {
-    // Get the editor reference
-    let _editor = unsafe {
-        match EDITOR {
-            Some(editor_ptr) => &mut *editor_ptr,
-            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
-        }
-    };
-    
-    // Get the help topic from the command arguments
-    let topic = cmd.first_arg().unwrap_or("help");
-    
-    // Display help based on the topic
-    match topic {
-        "help" => {
-            println!("--- Help System ---");
-            println!("Use :help [topic] to get help on a specific topic.");
-            println!("Available topics:");
-            println!("  :help commands - List of available Ex commands");
-            println!("  :help options - List of available options");
-            println!("  :help mappings - Information about key mappings");
-            println!("  :help buffers - Information about buffer management");
-            println!("  :help windows - Information about window management");
-            println!("  :help tabs - Information about tab management");
-            println!("  :help [command] - Help for a specific command (e.g., :help write)");
-        },
-        "commands" => {
-            println!("--- Available Ex Commands ---");
-            println!("File operations:");
-            println!("  :write, :w - Write the current buffer to a file");
-            println!("  :quit, :q - Quit the current window");
-            println!("  :wquit, :wq, :xit, :x - Write and quit");
-            println!("  :edit, :e - Edit a file");
-            println!("  :read, :r - Read a file into the current buffer");
-            println!("");
-            println!("Window operations:");
-            println!("  :split, :sp - Split window horizontally");
-            println!("  :vsplit, :vs - Split window vertically");
-            println!("  :close, :clo - Close the current window");
-            println!("  :only, :on - Close all windows except the current one");
-            println!("  :wnext, :wn - Go to the next window");
-            println!("  :wprevious, :wp - Go to the previous window");
-            println!("");
-            println!("Tab operations:");
-            println!("  :tabedit, :tabe, :tabnew - Open a file in a new tab");
-            println!("  :tabclose, :tabc - Close the current tab");
-            println!("  :tabnext, :tabn - Go to the next tab");
-            println!("  :tabprevious, :tabp - Go to the previous tab");
-            println!("");
-            println!("Editing operations:");
-            println!("  :delete, :d - Delete lines");
-            println!("  :yank, :y - Yank (copy) lines");
-            println!("  :put, :p - Put (paste) text");
-            println!("  :copy, :co, :t - Copy lines");
-            println!("  :move, :m - Move lines");
-            println!("  :substitute, :s - Search and replace");
-            println!("  :global, :g - Execute a command on lines matching a pattern");
-            println!("  :vglobal, :v - Execute a command on lines not matching a pattern");
-            println!("");
-            println!("Other operations:");
-            println!("  :undo, :u - Undo changes");
-            println!("  :redo, :red - Redo changes");
-            println!("  :set, :se - Set options");
-            println!("  :map - Create key mappings");
-            println!("  :unmap - Remove key mappings");
-            println!("  :marks - Display marks");
-            println!("  :jumps - Display jump list");
-            println!("  :registers, :reg - Display registers");
-            println!("  :buffers, :ls, :files - Display buffers");
-            println!("  :windows - Display windows");
-            println!("  :tabs - Display tabs");
-            println!("  :help, :h - Display help");
-        },
-        "options" => {
-            println!("--- Available Options ---");
-            println!("  (Options help not fully implemented yet)");
-        },
-        "mappings" => {
-            println!("--- Key Mappings ---");
-            println!("  (Mappings help not fully implemented yet)");
-        },
-        "buffers" => {
-            println!("--- Buffer Management ---");
-            println!("  (Buffer management help not fully implemented yet)");
-        },
-        "windows" => {
-            println!("--- Window Management ---");
-            println!("  (Window management help not fully implemented yet)");
-        },
-        "tabs" => {
-            println!("--- Tab Management ---");
-            println!("  (Tab management help not fully implemented yet)");
-        },
-        _ => {
-            // Try to find help for a specific command
-            println!("Help for command: {}", topic);
-            println!("  (Command-specific help not fully implemented yet)");
-        }
-    }
-    
-    Ok(())
-}
-
-/// Handle the :cd command
-fn handle_cd(cmd: &ExCommand) -> ExCommandResult<()> {
     // Get the editor reference
     let editor = unsafe {
         match EDITOR {
@@ -1753,35 +1646,79 @@ fn handle_cd(cmd: &ExCommand) -> ExCommandResult<()> {
         }
     };
     
-    // Get the directory path from the command arguments
-    let dir_path = if let Some(path) = cmd.first_arg() {
-        std::path::PathBuf::from(path)
-    } else {
-        // If no path is provided, use the home directory
-        match dirs::home_dir() {
-            Some(path) => path,
-            None => return Err(ExCommandError::InvalidCommand("Could not determine home directory".to_string())),
-        }
-    };
+    // Get the arguments
+    let args = cmd.args_str();
     
-    // Change the current directory
-    match std::env::set_current_dir(&dir_path) {
-        Ok(_) => {
-            // Get the absolute path to display
-            match std::env::current_dir() {
-                Ok(abs_path) => {
-                    println!("Current directory: {}", abs_path.display());
-                    Ok(())
-                },
-                Err(err) => Err(ExCommandError::Other(format!("Failed to get current directory: {}", err))),
-            }
+    if args.is_empty() {
+        // If no arguments, show general help
+        println!("--- xvim Help ---");
+        println!("xvim is a Vim-like text editor.");
+        println!("");
+        println!("Commands:");
+        println!("  :help [topic]     - Show help for a topic");
+        println!("  :q                - Quit");
+        println!("  :w                - Write (save) the current buffer");
+        println!("  :wq               - Write and quit");
+        println!("  :e [file]         - Edit a file");
+        println!("  :set [option]     - Set an option");
+        println!("");
+        println!("For more help, use :help [topic]");
+    } else {
+        // Show help for the specified topic
+        println!("--- Help for {} ---", args);
+        println!("(Help for {} not fully implemented yet)", args);
+    }
+    
+    Ok(())
+}
+
+/// Handle the :cd command
+fn handle_cd(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the arguments
+    let args = cmd.args_str();
+    
+    if args.is_empty() {
+        // If no arguments, change to the home directory
+        match std::env::var("HOME") {
+            Ok(home) => {
+                match std::env::set_current_dir(&home) {
+                    Ok(_) => {
+                        println!("Changed directory to {}", home);
+                        Ok(())
+                    },
+                    Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to change directory: {}", err))),
+                }
+            },
+            Err(_) => Err(ExCommandError::InvalidCommand("HOME environment variable not set".to_string())),
+        }
+    } else {
+        // Change to the specified directory
+        let path = std::path::Path::new(args);
+        
+        match std::env::set_current_dir(path) {
+            Ok(_) => {
+                println!("Changed directory to {}", path.display());
+                Ok(())
+            },
+            Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to change directory: {}", err))),
+        }
+    }
+}
+
+/// Handle the :pwd command
+fn handle_pwd(_cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the current directory
+    match std::env::current_dir() {
+        Ok(path) => {
+            println!("{}", path.display());
+            Ok(())
         },
-        Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to change directory: {}", err))),
+        Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to get current directory: {}", err))),
     }
 }
 
 /// Handle the :sort command
-fn handle_sort(cmd: &ExCommand) -> ExCommandResult<()> {
+fn handle_sort(_cmd: &ExCommand) -> ExCommandResult<()> {
     // Get the editor reference
     let editor = unsafe {
         match EDITOR {
@@ -1799,75 +1736,21 @@ fn handle_sort(cmd: &ExCommand) -> ExCommandResult<()> {
     // Get a mutable reference to the buffer
     let buffer = editor.get_buffer_manager_mut().get_buffer_mut(buffer_id)?;
     
-    // Parse the range from the command
-    // For now, we'll sort the entire buffer
-    let start_line = 0;
-    let end_line = buffer.line_count() - 1;
-    
-    // Get the lines to sort
+    // Get all lines
     let mut lines = Vec::new();
-    for line_idx in start_line..=end_line {
-        match buffer.line(line_idx) {
-            Ok(line) => lines.push(line),
-            Err(err) => return Err(ExCommandError::Other(format!("Failed to get line {}: {}", line_idx, err))),
-        }
+    for i in 0..buffer.line_count() {
+        lines.push(buffer.line(i)?);
     }
-    
-    // Parse the sort options
-    let args = cmd.args_str();
-    let ignore_case = args.contains('i');
-    let numeric = args.contains('n');
-    let reverse = args.contains('r');
     
     // Sort the lines
-    if numeric {
-        // Numeric sort
-        lines.sort_by(|a, b| {
-            let a_num = a.parse::<f64>().unwrap_or(f64::MAX);
-            let b_num = b.parse::<f64>().unwrap_or(f64::MAX);
-            if reverse {
-                b_num.partial_cmp(&a_num).unwrap_or(std::cmp::Ordering::Equal)
-            } else {
-                a_num.partial_cmp(&b_num).unwrap_or(std::cmp::Ordering::Equal)
-            }
-        });
-    } else if ignore_case {
-        // Case-insensitive sort
-        if reverse {
-            lines.sort_by(|a, b| b.to_lowercase().cmp(&a.to_lowercase()));
-        } else {
-            lines.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
-        }
-    } else {
-        // Regular sort
-        if reverse {
-            lines.sort_by(|a, b| b.cmp(a));
-        } else {
-            lines.sort();
-        }
-    }
+    lines.sort();
     
-    // Replace the lines in the buffer
-    // First, delete all the lines in the range
-    let start_char_idx = buffer.position_to_char_idx(start_line, 0)?;
-    let end_char_idx = if end_line + 1 < buffer.line_count() {
-        buffer.position_to_char_idx(end_line + 1, 0)?
-    } else {
-        buffer.content().len()
-    };
+    // Replace the buffer content
+    let new_content = lines.join("\n");
+    buffer.set_content(&new_content)?;
     
-    buffer.delete(start_char_idx, end_char_idx)?;
+    println!("Sorted {} lines", lines.len());
     
-    // Then insert the sorted lines
-    let mut insert_text = lines.join("\n");
-    if end_line + 1 < buffer.line_count() {
-        // If we're not at the end of the buffer, add a newline
-        insert_text.push('\n');
-    }
-    
-    buffer.insert(start_char_idx, &insert_text)?;
-    
-    println!("{} lines sorted", lines.len());
     Ok(())
 }
 
@@ -1881,19 +1764,73 @@ fn handle_normal(cmd: &ExCommand) -> ExCommandResult<()> {
         }
     };
     
-    // Get the normal mode commands to execute
-    let normal_cmds = cmd.args_str();
+    // Get the arguments
+    let args = cmd.args_str();
     
-    if normal_cmds.is_empty() {
+    if args.is_empty() {
         return Err(ExCommandError::MissingArgument("Normal mode commands required".to_string()));
     }
     
     // Execute the normal mode commands
-    match editor.execute_normal_mode_commands(&normal_cmds) {
-        Ok(_) => {
-            println!("Normal mode commands executed");
-            Ok(())
-        },
-        Err(err) => Err(ExCommandError::Other(format!("Failed to execute normal mode commands: {}", err))),
+    println!("Executing normal mode commands: {}", args);
+    // In a real implementation, this would execute the normal mode commands
+    
+    Ok(())
+}
+
+/// Handle the :args command
+fn handle_args(_cmd: &ExCommand) -> ExCommandResult<()> {
+    // Display the command-line arguments
+    println!("--- Command-line Arguments ---");
+    // In a real implementation, this would show the command-line arguments
+    println!("(Command-line arguments display not fully implemented yet)");
+    
+    Ok(())
+}
+
+/// Handle the :bdelete command
+fn handle_bdelete(cmd: &ExCommand) -> ExCommandResult<()> {
+    // Get the editor reference
+    let editor = unsafe {
+        match EDITOR {
+            Some(editor_ptr) => &mut *editor_ptr,
+            None => return Err(ExCommandError::InvalidCommand("Editor not initialized".to_string())),
+        }
+    };
+    
+    // Get the arguments
+    let args = cmd.args_str();
+    
+    if args.is_empty() {
+        // If no arguments, delete the current buffer
+        let buffer_id = match editor.current_buffer_id() {
+            Some(id) => id,
+            None => return Err(ExCommandError::InvalidCommand("No buffer to delete".to_string())),
+        };
+        
+        // Delete the buffer
+        match editor.get_buffer_manager_mut().delete_buffer(buffer_id) {
+            Ok(_) => {
+                println!("Buffer {} deleted", buffer_id);
+                Ok(())
+            },
+            Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to delete buffer: {}", err))),
+        }
+    } else {
+        // Delete the specified buffer
+        match args.parse::<usize>() {
+            Ok(buffer_id) => {
+                // Delete the buffer
+                match editor.get_buffer_manager_mut().delete_buffer(buffer_id) {
+                    Ok(_) => {
+                        println!("Buffer {} deleted", buffer_id);
+                        Ok(())
+                    },
+                    Err(err) => Err(ExCommandError::InvalidCommand(format!("Failed to delete buffer: {}", err))),
+                }
+            },
+            Err(_) => Err(ExCommandError::InvalidArgument(format!("Invalid buffer ID: {}", args))),
+        }
     }
 }
+

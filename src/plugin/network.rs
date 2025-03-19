@@ -5,9 +5,53 @@
 //! make network requests only to approved domains and with specific methods.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::Instant;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use anyhow::{anyhow, Result};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use url;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 /// Network permission level
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -351,7 +395,7 @@ struct PluginRequestTracker {
     /// Request count in the current minute
     request_count: usize,
     /// Last request time
-    last_request_time: std::time::Instant,
+    last_request_time: Instant,
 }
 
 impl PluginRequestTracker {
@@ -360,13 +404,13 @@ impl PluginRequestTracker {
         Self {
             plugin_name: plugin_name.to_string(),
             request_count: 0,
-            last_request_time: std::time::Instant::now(),
+            last_request_time: Instant::now(),
         }
     }
     
     /// Check if a request is allowed
     fn is_request_allowed(&mut self, max_requests_per_minute: usize) -> bool {
-        let now = std::time::Instant::now();
+        let now = Instant::now();
         let elapsed = now.duration_since(self.last_request_time);
         
         // Reset the counter if a minute has passed

@@ -5,8 +5,17 @@
 //! and status bar items.
 
 use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use crate::ui::{TerminalUi, UiError};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 /// UI element types
 #[derive(Debug, Clone, PartialEq)]
@@ -240,10 +249,10 @@ impl UiManager {
     /// Render all visible UI elements
     pub fn render(&mut self) -> Result<(), UiError> {
         // Get a lock on the terminal
-        let mut terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
+        let _terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
         
         // Render all visible elements
-        for (id, element) in &self.elements {
+        for (_id, element) in &self.elements {
             if element.is_visible() {
                 // Render the element based on its type
                 match element.element_type {
@@ -263,9 +272,9 @@ impl UiManager {
     }
     
     /// Render a window
-    fn render_window(&self, element: &UiElement) -> Result<(), UiError> {
+    fn render_window(&self, _element: &UiElement) -> Result<(), UiError> {
         // Get a lock on the terminal
-        let mut terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
+        let _terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
         
         // TODO: Implement window rendering
         
@@ -273,9 +282,9 @@ impl UiManager {
     }
     
     /// Render a dialog
-    fn render_dialog(&self, element: &UiElement) -> Result<(), UiError> {
+    fn render_dialog(&self, _element: &UiElement) -> Result<(), UiError> {
         // Get a lock on the terminal
-        let mut terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
+        let _terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
         
         // TODO: Implement dialog rendering
         
@@ -283,9 +292,9 @@ impl UiManager {
     }
     
     /// Render a status bar item
-    fn render_status_bar_item(&self, element: &UiElement) -> Result<(), UiError> {
+    fn render_status_bar_item(&self, _element: &UiElement) -> Result<(), UiError> {
         // Get a lock on the terminal
-        let mut terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
+        let _terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
         
         // TODO: Implement status bar item rendering
         
@@ -293,9 +302,9 @@ impl UiManager {
     }
     
     /// Render a popup menu
-    fn render_popup_menu(&self, element: &UiElement) -> Result<(), UiError> {
+    fn render_popup_menu(&self, _element: &UiElement) -> Result<(), UiError> {
         // Get a lock on the terminal
-        let mut terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
+        let _terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
         
         // TODO: Implement popup menu rendering
         
@@ -303,9 +312,9 @@ impl UiManager {
     }
     
     /// Render a floating window
-    fn render_floating_window(&self, element: &UiElement) -> Result<(), UiError> {
+    fn render_floating_window(&self, _element: &UiElement) -> Result<(), UiError> {
         // Get a lock on the terminal
-        let mut terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
+        let _terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
         
         // TODO: Implement floating window rendering
         
@@ -313,9 +322,9 @@ impl UiManager {
     }
     
     /// Render a custom UI element
-    fn render_custom_element(&self, element: &UiElement, custom_type: &String) -> Result<(), UiError> {
+    fn render_custom_element(&self, _element: &UiElement, _custom_type: &String) -> Result<(), UiError> {
         // Get a lock on the terminal
-        let mut terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
+        let _terminal = self.terminal.lock().map_err(|_| UiError::Other("Failed to lock terminal".to_string()))?;
         
         // TODO: Implement custom element rendering
         

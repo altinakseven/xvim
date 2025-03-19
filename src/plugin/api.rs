@@ -4,11 +4,25 @@
 //! It provides access to editor functionality in a controlled and sandboxed way.
 
 use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use crate::buffer::BufferManager;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use crate::command::ExCommandRegistry;
-use crate::editor::Editor;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use crate::mode::ModeManager;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 /// Plugin context
 ///

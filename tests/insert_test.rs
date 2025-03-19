@@ -194,6 +194,82 @@ fn test_open_line_commands() {
     println!("  Opening new lines test passed");
 }
 
+/// Test completion functionality in Insert mode
+fn test_completion() {
+    println!("Testing completion functionality in Insert mode...");
+    
+    // Create an editor instance
+    let mut editor = Editor::new().unwrap();
+    
+    // Create a buffer with some content
+    let buffer_id = editor.get_buffer_manager_mut().create_buffer().unwrap();
+    editor.get_buffer_manager_mut().set_current_buffer(buffer_id).unwrap();
+    
+    // Enter insert mode
+    editor.start_insert_mode(false).unwrap();
+    
+    // Insert some text with repeating words to create completion candidates
+    editor.insert_text("test testing testable testify\n").unwrap();
+    editor.insert_text("another line with test").unwrap();
+    
+    // Move cursor to a new line
+    editor.insert_newline().unwrap();
+    
+    // Type the beginning of a word that should trigger completion
+    editor.insert_text("te").unwrap();
+    
+    // Trigger completion with Ctrl+N
+    let ctrl_n = KeyEvent::new(KeyCode::Char('n'), KeyModifiers::CONTROL);
+    editor.process_key(ctrl_n).unwrap();
+    
+    // Verify completion is active
+    assert!(editor.insert_state().completion_active);
+    
+    // Navigate through completions with Ctrl+N
+    editor.process_key(ctrl_n).unwrap();
+    
+    // Navigate through completions with Ctrl+P
+    let ctrl_p = KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL);
+    editor.process_key(ctrl_p).unwrap();
+    
+    // Accept completion with Tab
+    let tab = KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE);
+    editor.process_key(tab).unwrap();
+    
+    // Verify completion is no longer active
+    assert!(!editor.insert_state().completion_active);
+    
+    // Get the buffer content to verify the completion was inserted
+    let buffer = editor.get_buffer_manager().get_buffer(buffer_id).unwrap();
+    let content = buffer.content();
+    
+    // The exact completion word depends on the implementation, but it should start with "te"
+    // and be one of the words we inserted earlier
+    assert!(content.contains("\ntest") || content.contains("\ntesting") ||
+            content.contains("\ntestable") || content.contains("\ntestify"));
+    
+    // Test canceling completion
+    // Type the beginning of a word again
+    editor.insert_newline().unwrap();
+    editor.insert_text("te").unwrap();
+    
+    // Trigger completion
+    editor.process_key(ctrl_n).unwrap();
+    
+    // Verify completion is active
+    assert!(editor.insert_state().completion_active);
+    
+    // Cancel completion with Escape
+    let esc = KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE);
+    editor.process_key(esc).unwrap();
+    
+    // Verify completion is no longer active and we're back in normal mode
+    assert!(!editor.insert_state().completion_active);
+    assert_eq!(editor.current_mode(), Mode::Normal);
+    
+    println!("  Completion functionality test passed");
+}
+
 /// Run all tests
 fn main() {
     println!("Running Insert mode tests...");
@@ -203,6 +279,7 @@ fn main() {
     test_auto_indentation();
     test_character_deletion();
     test_open_line_commands();
+    test_completion();
     
     println!("All Insert mode tests passed!");
 }

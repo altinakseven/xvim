@@ -3,6 +3,8 @@
 //! This module implements the key mapping system for xvim, which allows users to
 //! define custom key bindings for various commands and operations.
 
+pub mod normal_commands;
+
 use std::collections::HashMap;
 use crossterm::event::KeyEvent;
 use crate::mode::Mode;

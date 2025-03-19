@@ -6,7 +6,6 @@
 use anyhow::{anyhow, Result};
 use crate::buffer::BufferManager;
 use crate::plugin::PluginManager;
-use crate::plugin::ui::UiElementType;
 
 /// AI conversation state
 pub struct AiConversation {
@@ -313,8 +312,8 @@ pub fn handle_ctrl_right_bracket(buffer_manager: &mut BufferManager, _plugin_man
     
     // Get the buffer (read-only is fine since we're not modifying it)
     let buffer_result = buffer_manager.get_buffer(buffer_id);
-    if buffer_result.is_err() {
-        return Err(anyhow!("Failed to get buffer: {}", buffer_result.err().unwrap()));
+    if let Err(e) = buffer_result {
+        return Err(anyhow!("Failed to get buffer: {}", e));
     }
     
     let buffer = buffer_result.unwrap();

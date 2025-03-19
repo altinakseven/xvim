@@ -18,11 +18,10 @@ use crossterm::{
 };
 
 use crate::buffer::{Buffer, BufferSyntaxExt};
-use crate::cursor::CursorPosition;
-use crate::mode::Mode;
 use crate::selection::Selection;
 use crate::syntax::{SyntaxHighlighter, Theme, TokenType};
-use std::sync::Arc;
+use crate::cursor::CursorPosition;
+use crate::mode::Mode;
 use self::syntax_renderer::SyntaxRenderer;
 use self::status_line::StatusLine;
 use self::tab::{TabManager, Tab, TabId};
@@ -246,7 +245,7 @@ impl TerminalUi {
                     }
                     
                     // Handle selection highlighting if needed
-                    if let Some(sel) = selection {
+                    if let Some(_sel) = selection {
                         // Implement selection highlighting here
                         // This would need to iterate through the line and highlight selected characters
                     }

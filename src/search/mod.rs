@@ -3,9 +3,9 @@
 //! This module implements search functionality for xvim, including
 //! forward and backward search, search history, and search highlighting.
 
-use crate::buffer::Buffer;
-use crate::editor::Editor;
-use crate::cursor::CursorPosition;
+// // use crate::buffer::Buffer;
+// // use crate::editor::Editor;
+// use crate::cursor::CursorPosition;
 use std::collections::VecDeque;
 
 /// Maximum number of search patterns to store in history
@@ -187,6 +187,13 @@ impl SearchState {
 
     /// Clear the search results
     pub fn clear_results(&mut self) {
+        self.last_results.clear();
+        self.current_result_index = None;
+    }
+    
+    /// Clear the search state (for :nohlsearch command)
+    pub fn clear(&mut self) {
+        self.pattern = None;
         self.last_results.clear();
         self.current_result_index = None;
     }

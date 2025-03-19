@@ -4,7 +4,13 @@
 //! It allows plugins to receive notifications about editor events.
 
 use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 /// Event types that can be sent to plugins
 #[derive(Debug, Clone, PartialEq)]

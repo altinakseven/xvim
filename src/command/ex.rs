@@ -4,6 +4,7 @@
 //! commands that start with a colon (e.g., :w, :q, :set, etc.).
 
 use std::str::FromStr;
+// use std::fs::File;
 use std::fmt;
 use std::collections::HashMap;
 use std::sync::Arc;

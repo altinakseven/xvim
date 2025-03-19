@@ -1,3 +1,4 @@
+use std::io::Write;
 // This file contains tab management methods for the TerminalUi class
 // These will be added to the TerminalUi implementation in mod.rs
 
@@ -210,26 +211,26 @@ impl TerminalUi {
         // Render command line if in command mode
         if mode == Mode::Command {
             let (width, height) = self.size;
-            let mut stdout = io::stdout();
+            let _stdout = io::stdout();
             
             // Move to the command line position
             execute!(
-                stdout,
+                io::stdout(),
                 cursor::MoveTo(0, height - 1)
             )?;
             
             // Clear the line
             execute!(
-                stdout,
+                io::stdout(),
                 terminal::Clear(ClearType::CurrentLine)
             )?;
             
             // Write the command prompt and buffer
-            write!(stdout, ":{}", command_buffer)?;
+            write!(io::stdout(), ":{}", command_buffer)?;
             
             // Position the cursor after the command text
             execute!(
-                stdout,
+                io::stdout(),
                 cursor::MoveTo(1 + command_buffer.len() as u16, height - 1)
             )?;
         }
@@ -242,12 +243,11 @@ impl TerminalUi {
     
     /// Render the tab bar
     fn render_tab_bar(&self) -> UiResult<()> {
-        let mut stdout = io::stdout();
         let (width, _) = self.size;
         
         // Set the tab bar color
         execute!(
-            stdout,
+            io::stdout(),
             cursor::MoveTo(0, 0),
             style::SetBackgroundColor(Color::DarkBlue),
             style::SetForegroundColor(Color::White)
@@ -263,7 +263,7 @@ impl TerminalUi {
         
         if tab_count == 0 {
             // No tabs, just render an empty bar
-            write!(stdout, "{}", " ".repeat(available_width))?;
+            write!(io::stdout(), "{}", " ".repeat(available_width))?;
         } else {
             // Calculate the width for each tab
             let tab_width = available_width / tab_count;
@@ -276,14 +276,14 @@ impl TerminalUi {
                 // Set the tab color
                 if is_current {
                     execute!(
-                        stdout,
+                        io::stdout(),
                         style::SetBackgroundColor(Color::Blue),
                         style::SetForegroundColor(Color::White),
                         style::SetAttribute(style::Attribute::Bold)
                     )?;
                 } else {
                     execute!(
-                        stdout,
+                        io::stdout(),
                         style::SetBackgroundColor(Color::DarkBlue),
                         style::SetForegroundColor(Color::White)
                     )?;
@@ -291,7 +291,7 @@ impl TerminalUi {
                 
                 // Calculate the tab position
                 let tab_x = i * tab_width;
-                execute!(stdout, cursor::MoveTo(tab_x as u16, 0))?;
+                execute!(io::stdout(), cursor::MoveTo(tab_x as u16, 0))?;
                 
                 // Render the tab name
                 let mut tab_name = tab.name.clone();
@@ -306,20 +306,18 @@ impl TerminalUi {
                 
                 // Pad the tab name
                 let padding = " ".repeat(tab_width - tab_name.len());
-                write!(stdout, " {}{}", tab_name, padding)?;
+                write!(io::stdout(), " {}{}", tab_name, padding)?;
             }
         }
         
         // Reset the color
-        execute!(stdout, style::ResetColor)?;
+        execute!(io::stdout(), style::ResetColor)?;
         
         Ok(())
     }
     
     /// Render the windows in a tab
     fn render_windows(&self, window_manager: &WindowManager, buffers: &[&Buffer], mode: Mode) -> UiResult<()> {
-        let mut stdout = io::stdout();
-        
         // Get all windows
         let windows = window_manager.windows();
         
@@ -341,8 +339,6 @@ impl TerminalUi {
     
     /// Render a single window
     fn render_window(&self, window: &Window, buffer: &Buffer, mode: Mode) -> UiResult<()> {
-        let mut stdout = io::stdout();
-        
         // Get the window content area
         let content_area = window.rect.content_area();
         
@@ -355,14 +351,14 @@ impl TerminalUi {
             
             if line_idx < buffer.line_count() {
                 // Position the cursor at the start of the line
-                execute!(stdout, cursor::MoveTo(content_area.x, content_area.y + i))?;
+                execute!(io::stdout(), cursor::MoveTo(content_area.x, content_area.y + i))?;
                 
                 // Render the line number
-                write!(stdout, "{:4} ", line_idx + 1)?;
+                write!(io::stdout(), "{:4} ", line_idx + 1)?;
                 
                 // Render the line content with syntax highlighting
                 self.syntax_renderer.render_line(
-                    &mut stdout,
+                    &mut io::stdout(),
                     buffer,
                     line_idx,
                     window.left_col,
@@ -370,10 +366,10 @@ impl TerminalUi {
                 )?;
             } else {
                 // Position the cursor at the start of the line
-                execute!(stdout, cursor::MoveTo(content_area.x, content_area.y + i))?;
+                execute!(io::stdout(), cursor::MoveTo(content_area.x, content_area.y + i))?;
                 
                 // Render a tilde for empty lines
-                write!(stdout, "~")?;
+                write!(io::stdout(), "~")?;
             }
         }
         
@@ -386,7 +382,7 @@ impl TerminalUi {
         
         if cursor_x < content_area.x + content_area.width && cursor_y < content_area.y + content_area.height {
             // Move to the cursor position
-            execute!(stdout, cursor::MoveTo(cursor_x, cursor_y))?;
+            execute!(io::stdout(), cursor::MoveTo(cursor_x, cursor_y))?;
             
             // Get the character at the cursor position
             let cursor_char = if window.cursor.line < buffer.line_count() {
@@ -402,19 +398,19 @@ impl TerminalUi {
             
             // Highlight the cursor by inverting the colors
             execute!(
-                stdout,
+                io::stdout(),
                 style::SetBackgroundColor(Color::White),
                 style::SetForegroundColor(Color::Black)
             )?;
             
             // Write the character at the cursor position
-            write!(stdout, "{}", cursor_char)?;
+            write!(io::stdout(), "{}", cursor_char)?;
             
             // Reset the colors
-            execute!(stdout, style::ResetColor)?;
+            execute!(io::stdout(), style::ResetColor)?;
             
             // Move back to the cursor position
-            execute!(stdout, cursor::MoveTo(cursor_x, cursor_y))?;
+            execute!(io::stdout(), cursor::MoveTo(cursor_x, cursor_y))?;
         }
         
         Ok(())
@@ -422,8 +418,6 @@ impl TerminalUi {
     
     /// Render the window border
     fn render_window_border(&self, window: &Window) -> UiResult<()> {
-        let mut stdout = io::stdout();
-        
         // Only render borders if there are multiple windows
         if self.tab_manager.current_tab().map_or(false, |tab| tab.window_manager.windows().len() <= 1) {
             return Ok(());
@@ -440,46 +434,44 @@ impl TerminalUi {
             Color::DarkGrey
         };
         
-        execute!(stdout, style::SetForegroundColor(border_color))?;
+        execute!(io::stdout(), style::SetForegroundColor(border_color))?;
         
         // Render the top border
-        execute!(stdout, cursor::MoveTo(window.rect.x, window.rect.y))?;
-        write!(stdout, "┌")?;
+        execute!(io::stdout(), cursor::MoveTo(window.rect.x, window.rect.y))?;
+        write!(io::stdout(), "┌")?;
         for _ in 1..window.rect.width - 1 {
-            write!(stdout, "─")?;
+            write!(io::stdout(), "─")?;
         }
-        write!(stdout, "┐")?;
+        write!(io::stdout(), "┐")?;
         
         // Render the side borders
         for i in 1..window.rect.height - 1 {
-            execute!(stdout, cursor::MoveTo(window.rect.x, window.rect.y + i))?;
-            write!(stdout, "│")?;
+            execute!(io::stdout(), cursor::MoveTo(window.rect.x, window.rect.y + i))?;
+            write!(io::stdout(), "│")?;
             
-            execute!(stdout, cursor::MoveTo(window.rect.x + window.rect.width - 1, window.rect.y + i))?;
-            write!(stdout, "│")?;
+            execute!(io::stdout(), cursor::MoveTo(window.rect.x + window.rect.width - 1, window.rect.y + i))?;
+            write!(io::stdout(), "│")?;
         }
         
         // Render the bottom border
-        execute!(stdout, cursor::MoveTo(window.rect.x, window.rect.y + window.rect.height - 1))?;
-        write!(stdout, "└")?;
+        execute!(io::stdout(), cursor::MoveTo(window.rect.x, window.rect.y + window.rect.height - 1))?;
+        write!(io::stdout(), "└")?;
         for _ in 1..window.rect.width - 1 {
-            write!(stdout, "─")?;
+            write!(io::stdout(), "─")?;
         }
-        write!(stdout, "┘")?;
+        write!(io::stdout(), "┘")?;
         
         // Reset the color
-        execute!(stdout, style::ResetColor)?;
+        execute!(io::stdout(), style::ResetColor)?;
         
         Ok(())
     }
     
     /// Render the window status line
     fn render_window_status_line(&self, window: &Window, buffer: &Buffer, mode: Mode) -> UiResult<()> {
-        let mut stdout = io::stdout();
-        
         // Use the enhanced status line renderer
         self.status_line.render_window_status_line(
-            &mut stdout,
+            &mut io::stdout(),
             &window.rect,
             buffer,
             mode,

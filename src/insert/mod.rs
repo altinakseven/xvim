@@ -5,12 +5,15 @@
 //! - Auto-indentation
 //! - Special key handling (backspace, enter, etc.)
 //! - Insert mode commands (Ctrl-key combinations)
+//! - Completion
 
 use crate::buffer::Buffer;
+use crate::command::completion_handlers::{CompletionContext, CompletionItem, CompletionType};
 use crate::cursor::CursorPosition;
 use crate::editor::{Editor, EditorError, EditorResult};
-use crate::mode::Mode;
+// use crate::mode::Mode;
 use std::cmp::{max, min};
+// use regex::Regex;
 
 /// Insert mode state
 #[derive(Debug, Clone)]
@@ -29,6 +32,14 @@ pub struct InsertState {
     pub inserted_text: String,
     /// Number of lines inserted during this insert mode session
     pub lines_inserted: usize,
+    /// Whether completion is active
+    pub completion_active: bool,
+    /// Completion type
+    pub completion_type: Option<CompletionType>,
+    /// Base word for completion
+    pub completion_base: String,
+    /// Start position of the word being completed
+    pub completion_start_pos: Option<CursorPosition>,
 }
 
 impl Default for InsertState {
@@ -41,6 +52,10 @@ impl Default for InsertState {
             auto_indent: true,
             inserted_text: String::new(),
             lines_inserted: 0,
+            completion_active: false,
+            completion_type: None,
+            completion_base: String::new(),
+            completion_start_pos: None,
         }
     }
 }
@@ -105,6 +120,24 @@ pub trait InsertFunctions {
     
     /// Get a mutable reference to the insert state
     fn insert_state_mut(&mut self) -> &mut InsertState;
+    
+    /// Trigger completion
+    fn trigger_completion(&mut self, completion_type: CompletionType) -> EditorResult<()>;
+    
+    /// Move to the next completion
+    fn next_completion(&mut self) -> EditorResult<()>;
+    
+    /// Move to the previous completion
+    fn prev_completion(&mut self) -> EditorResult<()>;
+    
+    /// Accept the current completion
+    fn accept_completion(&mut self) -> EditorResult<()>;
+    
+    /// Cancel the current completion
+    fn cancel_completion(&mut self) -> EditorResult<()>;
+    
+    /// Update completion based on current text
+    fn update_completion(&mut self) -> EditorResult<()>;
 }
 
 /// Extension trait for Buffer to handle auto-indentation

@@ -3,9 +3,21 @@
 //! This module handles the integration of plugin commands with the editor's command system.
 
 use crate::command::{ExCommand, ExCommandError, ExCommandResult, ExCommandRegistry, Range, CommandFlags};
-use crate::plugin::PluginManager;
-use crate::plugin::ai;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use crate::plugin::PluginManager;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
+use crate::plugin::ai;
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 /// Initialize plugin commands
 ///
@@ -181,67 +193,74 @@ fn handle_plugin_command(name: &str, args: &[String], plugin_manager: Arc<Mutex<
     if name == "NoxChat" {
         eprintln!("DEBUG: NoxChat command received");
         
-        // Simplified approach to create an information buffer
-        
-        // Get the plugin manager lock
-        let mut plugin_manager_guard = match plugin_manager.lock() {
-            Ok(guard) => guard,
-            Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock plugin manager".to_string())),
-        };
-        
-        // Get the context
-        let context = plugin_manager_guard.context();
-        
-        // Drop the plugin manager lock to avoid deadlocks
-        drop(plugin_manager_guard);
-        
-        // Get the context lock
-        let context_guard = match context.lock() {
-            Ok(guard) => guard,
-            Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock plugin context".to_string())),
-        };
-        
-        // Get the buffer manager
-        let buffer_manager = match context_guard.buffer_manager() {
-            Some(bm) => bm,
-            None => return Err(ExCommandError::InvalidCommand("Buffer manager not available".to_string())),
-        };
-        
-        // Drop the context lock to avoid deadlocks
-        drop(context_guard);
-        
-        // Get the buffer manager lock
-        let mut buffer_manager_guard = match buffer_manager.lock() {
-            Ok(guard) => guard,
-            Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock buffer manager".to_string())),
-        };
-        
-        // Get the plugin manager lock again
-        let mut plugin_manager_guard = match plugin_manager.lock() {
-            Ok(guard) => guard,
-            Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock plugin manager again".to_string())),
-        };
-        
-        // Create the information buffer
-        eprintln!("DEBUG: Creating information buffer");
-        match ai::create_chat_interface(&mut buffer_manager_guard, &mut plugin_manager_guard) {
-            Ok((info_buffer_id, _)) => {
-                eprintln!("DEBUG: Created information buffer with ID {}", info_buffer_id);
+        // Create a scope for the plugin manager lock to ensure it's released
+        {
+            // Get the plugin manager lock
+            let plugin_manager_guard = match plugin_manager.lock() {
+                Ok(guard) => guard,
+                Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock plugin manager".to_string())),
+            };
+            
+            // Get the context
+            let context = plugin_manager_guard.context();
+            
+            // Drop the plugin manager lock to avoid deadlocks
+            drop(plugin_manager_guard);
+            
+            // Create a scope for the context lock
+            {
+                // Get the context lock
+                let context_guard = match context.lock() {
+                    Ok(guard) => guard,
+                    Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock plugin context".to_string())),
+                };
                 
-                // Drop locks before executing commands to avoid deadlocks
-                drop(buffer_manager_guard);
-                drop(plugin_manager_guard);
+                // Get the buffer manager
+                let buffer_manager = match context_guard.buffer_manager() {
+                    Some(bm) => bm.clone(), // Clone to keep it after dropping context_guard
+                    None => return Err(ExCommandError::InvalidCommand("Buffer manager not available".to_string())),
+                };
                 
-                // Instead of using the edit command, just log that the buffer was created
-                // This avoids cursor positioning issues with read-only buffers
-                eprintln!("DEBUG: \"NoxVim-Info\" opened");
+                // Drop the context lock to avoid deadlocks
+                drop(context_guard);
                 
-                eprintln!("DEBUG: Information buffer created and displayed successfully");
-                return Ok(());
-            },
-            Err(e) => {
-                eprintln!("DEBUG: Failed to create information buffer: {}", e);
-                return Err(ExCommandError::InvalidCommand(format!("Failed to create information buffer: {}", e)));
+                // Create a scope for the buffer manager lock
+                {
+                    // Get the buffer manager lock
+                    let mut buffer_manager_guard = match buffer_manager.lock() {
+                        Ok(guard) => guard,
+                        Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock buffer manager".to_string())),
+                    };
+                    
+                    // Get the plugin manager lock again
+                    let mut plugin_manager_guard = match plugin_manager.lock() {
+                        Ok(guard) => guard,
+                        Err(_) => return Err(ExCommandError::InvalidCommand("Failed to lock plugin manager again".to_string())),
+                    };
+                    
+                    // Create the information buffer
+                    eprintln!("DEBUG: Creating information buffer");
+                    match ai::create_chat_interface(&mut buffer_manager_guard, &mut plugin_manager_guard) {
+                        Ok((info_buffer_id, _)) => {
+                            eprintln!("DEBUG: Created information buffer with ID {}", info_buffer_id);
+                            
+                            // Drop locks before executing commands to avoid deadlocks
+                            drop(buffer_manager_guard);
+                            drop(plugin_manager_guard);
+                            
+                            // Instead of using the edit command, just log that the buffer was created
+                            // This avoids cursor positioning issues with read-only buffers
+                            eprintln!("DEBUG: \"NoxVim-Info\" opened");
+                            
+                            eprintln!("DEBUG: Information buffer created and displayed successfully");
+                            return Ok(());
+                        },
+                        Err(e) => {
+                            eprintln!("DEBUG: Failed to create information buffer: {}", e);
+                            return Err(ExCommandError::InvalidCommand(format!("Failed to create information buffer: {}", e)));
+                        }
+                    }
+                }
             }
         }
     }

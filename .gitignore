@@ -23,4 +23,5 @@ Thumbs.db
 # Test artifacts
 *.profraw
 Roo-Code
-vim
+/vim/
+/claude.vim/

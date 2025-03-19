@@ -4,7 +4,7 @@
 //! allowing users to record a sequence of commands and play them back.
 
 use crossterm::event::{KeyEvent, KeyCode, KeyModifiers};
-use std::collections::HashMap;
+// // use std::collections::HashMap;
 use crate::register::{RegisterManager, RegisterType, RegisterContent};
 
 /// Macro recorder state

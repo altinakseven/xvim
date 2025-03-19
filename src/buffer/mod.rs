@@ -13,13 +13,133 @@ pub use change::{Change, ChangeGroup, ChangeHistory, ChangeType};
 pub use syntax::{BufferSyntax, BufferSyntaxExt};
 
 use ropey::Rope;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
 use std::error::Error;
-use std::fs::File;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
 use std::io::{self, BufReader, Read, Write};
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::fs::File;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
 use std::cmp::min;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
 use regex::Regex;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
 use std::collections::HashMap;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
+use std::path::PathBuf;
+use std::io::Write;
+use std::io::Read;
+use std::io::Write;
 
 // Forward declaration for VisualArea to avoid circular dependency
 pub use crate::visual::VisualArea;
@@ -172,13 +292,13 @@ pub struct Buffer {
     /// Unique identifier for the buffer
     id: usize,
     /// Short name of the buffer (filename without path)
-    name: String,
+    pub(crate) name: String,
     /// Full path to the file, if any
-    file_path: Option<PathBuf>,
+    pub(crate) file_path: Option<PathBuf>,
     /// The actual text content using a rope data structure
     content: Rope,
     /// Buffer state flags
-    flags: BufferFlags,
+    pub(crate) flags: BufferFlags,
     /// Buffer type
     buffer_type: BufferType,
     /// Whether the buffer is read-only
@@ -192,7 +312,7 @@ pub struct Buffer {
     /// Marks in the buffer
     marks: MarkMap,
     /// Syntax highlighting data
-    syntax: syntax::BufferSyntax,
+    pub(crate) syntax: syntax::BufferSyntax,
     /// Visual area for 'gv' command
     pub(crate) visual_area: Option<crate::visual::VisualArea>,
 }
@@ -824,6 +944,7 @@ impl Buffer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::NamedTempFile;
     
     #[test]
     fn test_new_buffer() {
@@ -906,8 +1027,6 @@ mod tests {
     
     #[test]
     fn test_buffer_save() {
-        use tempfile::NamedTempFile;
-        
         // Create a temporary file
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_path_buf();

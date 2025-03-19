@@ -4,12 +4,16 @@
 //! in the terminal UI.
 
 use crossterm::style::{Color, SetBackgroundColor, SetForegroundColor, SetAttribute, Attribute};
-use crossterm::style::Stylize;
+use std::io::Write;
 use crossterm::Result;
-use std::io::{Write, Stdout};
+use std::io::Write;
+use std::io::{Stdout, Write};
+use std::io::Write;
 
 use crate::buffer::{Buffer, BufferSyntaxExt};
+use std::io::Write;
 use crate::syntax::{Token, TokenType, Style};
+use std::io::Write;
 
 /// Renders syntax-highlighted text to the terminal
 #[derive(Clone)]
@@ -158,7 +162,6 @@ impl Default for SyntaxRenderer {
 mod tests {
     use super::*;
     use crate::syntax::{create_default_registry, create_default_theme};
-    use std::sync::Arc;
     
     #[test]
     fn test_render_line() {

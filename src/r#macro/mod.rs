@@ -5,7 +5,7 @@
 //! to automate repetitive tasks.
 
 use std::collections::VecDeque;
-use crossterm::event::KeyEvent;
+// use crossterm::event::KeyEvent;
 use crate::register::{RegisterManager, RegisterType, RegisterContent};
 
 /// Macro recorder state

@@ -5,8 +5,10 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+// use std::fs::File;
 use std::error::Error;
 use std::fmt;
+use std::io::Write;
 
 use super::{Buffer, BufferError, BufferResult};
 
@@ -190,6 +192,18 @@ impl BufferManager {
         self.path_to_id.get(path.as_ref()).copied()
     }
     
+    /// Get a buffer name by ID
+    pub fn get_buffer_name(&self, buffer_id: usize) -> Option<String> {
+        self.buffers.get(&buffer_id).map(|buffer| buffer.name().to_string())
+    }
+    
+    /// Set a buffer name by ID
+    pub fn set_buffer_name(&mut self, buffer_id: usize, name: &str) -> BufferManagerResult<()> {
+        let buffer = self.get_buffer_mut(buffer_id)?;
+        buffer.set_name(name.to_string());
+        Ok(())
+    }
+    
     /// Close a buffer by ID
     pub fn close_buffer(&mut self, id: usize) -> BufferManagerResult<()> {
         if !self.buffers.contains_key(&id) {
@@ -242,7 +256,6 @@ impl Default for BufferManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
     use tempfile::NamedTempFile;
     
     #[test]

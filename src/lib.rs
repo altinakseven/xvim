@@ -18,6 +18,7 @@ pub mod selection;
 pub mod syntax;
 pub mod text_object;
 pub mod ui;
+pub mod vimscript;
 pub mod visual;
 
 // Re-export commonly used types
@@ -30,4 +31,6 @@ pub use mode::{Mode, ModeManager};
 pub use operator::{Operator, OperatorTarget, OperatorState, OperatorManager};
 pub use register::{RegisterManager, RegisterType, RegisterContent};
 pub use search::{SearchState, SearchDirection, SearchFunctions};
+pub use syntax::{SyntaxDefinition, SyntaxManager, TokenType, Token, Rule, highlight_buffer, get_syntax_definition_for_file};
+pub use vimscript::{VimValue, VimScope, VimVariable, VimFunction, VimContext, VimScriptInterpreter, execute_file, execute, execute_line, register_vim_script_commands};
 pub use visual::{VisualMode, VisualState, VisualFunctions, VisualArea};

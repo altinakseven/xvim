@@ -31,12 +31,47 @@ xvim
 - Implements Ex commands with a registry pattern
 - Commands are registered with handlers that can be invoked by name
 - Error handling with custom error types for clear user feedback
+- Modular organization with core and additional command handlers
+- Command history tracking with the `:history` command
+- Variable system with `:let` and `:unlet` commands
+- Script execution with the `:source` command
+- Quickfix system for error navigation and external command integration
+- Location list system for window-specific error lists
+- Code folding system with multiple folding methods
+- Tag navigation system for jumping to symbol definitions
+- Window and tab management system for multi-file editing
+- Search and replace system with pattern matching and substitution
+- Macro system for recording and playing back command sequences
+- Undo/redo system with branching history and time-based navigation
+- Mark system for navigating within and between files
+- Completion system for auto-completing text in various contexts
+- Spell checking system for identifying and correcting misspelled words
+- Diff system for comparing and merging differences between files
+- Session management system for saving and restoring editor state
+- Autocmd system for event-based automation
+- Terminal system for running commands within the editor
+- Syntax highlighting system for code coloring and language support
+- Vim script execution system for configuration and scripting
 
 ### UI System
 
 - Terminal-based UI using `crossterm` for terminal manipulation
 - Widget-based rendering with `ratatui` (formerly tui-rs)
 - Event-driven architecture for handling user input
+
+### Syntax Highlighting
+
+- Rule-based syntax highlighting with regular expressions
+- Theme support with customizable colors and styles
+- Integration with Vim's syntax files for extensive language support
+- Dynamic loading of syntax definitions from runtime files
+
+### Vim Runtime Integration
+
+- Directory structure mirroring Vim's runtime organization
+- Loading of filetype detection, syntax highlighting, and indentation settings
+- Support for filetype-specific plugins and configurations
+- Compatibility with existing Vim configurations
 
 ### Plugin System
 
